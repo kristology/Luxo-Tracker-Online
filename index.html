@@ -1,0 +1,3140 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Luxo Tracker - Sistem Manajemen British Shorthair</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js for Growth & Weight Analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- FontAwesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- html2pdf.js for Client-side 1-Page A4 PDF Generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f8fafc; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    .action-card { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+    .action-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    }
+    @keyframes ringPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+    }
+    .pulse-alarm {
+      animation: ringPulse 1.4s infinite ease-in-out;
+    }
+
+    /* Print & Single-Page A4 Executive Summary Styles */
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #pdfA4Container, #pdfA4Container * {
+        visibility: visible;
+      }
+      #pdfA4Container {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        box-shadow: none !important;
+        border: none !important;
+      }
+      @page {
+        size: A4 portrait;
+        margin: 0;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col antialiased selection:bg-sky-600 selection:text-white">
+
+  <!-- TOP HEADER BAR -->
+  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <!-- Brand Logo & Identity -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-slate-900 to-sky-700 text-white flex items-center justify-center shadow-md shadow-sky-900/10">
+          <i id="headerPetIcon" class="fa-solid fa-cat text-lg"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-extrabold text-slate-900 tracking-tight text-lg leading-tight">Luxo Tracker</h1>
+            <span class="text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md border border-slate-200">Special Edition</span>
+          </div>
+          <p class="text-xs text-slate-500 font-medium">Sistem Pemantauan Luxo The British Shorthair</p>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center gap-2.5">
+        <button onclick="openGroomingScheduleModal()" class="text-xs sm:text-sm font-semibold px-3.5 py-2 rounded-xl bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100/80 transition flex items-center gap-2 shadow-xs">
+          <i class="fa-solid fa-bell text-xs"></i>
+          <span class="hidden sm:inline">Jadwal Grooming</span>
+        </button>
+        <div id="syncIndicator" class="text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5" title="Status Sistem">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span class="hidden md:inline">Online</span>
+        </div>
+        <!-- Tombol Database Sheets disembunyikan permanen -->
+        <a id="btnOpenSheet" href="#" target="_blank" class="hidden" style="display: none !important;">
+          <i class="fa-solid fa-table"></i>
+          <span>Database Sheets</span>
+        </a>
+        <button onclick="openExportReportModal()" class="text-xs sm:text-sm font-semibold px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white transition flex items-center gap-2 shadow-xs">
+          <i class="fa-solid fa-file-pdf text-xs text-rose-400"></i>
+          <span>Export Data</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- Pet Profile Overview Card -->
+    <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden border border-slate-700/40">
+      <div class="absolute -right-20 -top-20 w-72 h-72 bg-sky-500/15 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -left-20 -bottom-20 w-72 h-72 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div class="relative z-10 flex flex-col md:flex-row items-center gap-6 sm:gap-8">
+        <!-- Interactive Avatar with Photo Upload -->
+        <div class="relative group">
+          <div class="w-32 h-32 sm:w-36 sm:h-36 rounded-full border-4 border-white/20 p-1 bg-white/10 shadow-2xl relative overflow-hidden flex items-center justify-center">
+            <img id="petAvatar" src="https://placehold.co/300x300/334155/ffffff?text=Luxo+BSH" alt="Foto British Shorthair" class="w-full h-full object-cover rounded-full" onerror="this.src='https://placehold.co/300x300/334155/ffffff?text=Foto+Pet'">
+            
+            <label for="petPhotoInput" class="absolute inset-0 bg-slate-950/70 rounded-full opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-xs font-semibold cursor-pointer transition-opacity duration-200 text-slate-100">
+              <i class="fa-solid fa-camera text-xl mb-1 text-sky-400"></i>
+              <span>Perbarui Foto</span>
+            </label>
+            <input type="file" id="petPhotoInput" accept="image/*" class="hidden">
+          </div>
+          <button id="btnTriggerPhoto" type="button" title="Ubah Foto" class="absolute bottom-1 right-1 bg-sky-600 hover:bg-sky-500 text-white w-9 h-9 rounded-full flex items-center justify-center shadow-lg border-2 border-slate-900 transition">
+            <i class="fa-solid fa-pen text-xs"></i>
+          </button>
+        </div>
+
+        <!-- Details -->
+        <div class="flex-1 text-center md:text-left space-y-2.5">
+          <div class="flex flex-wrap items-center justify-center md:justify-start gap-2">
+            <h2 id="dispPetName" class="text-2xl sm:text-3xl font-extrabold tracking-tight">Luxo</h2>
+            <span id="dispPetBreed" class="bg-sky-500/20 text-sky-300 border border-sky-400/30 text-xs px-2.5 py-0.5 rounded-full font-semibold">British Shorthair</span>
+            <span id="dispPetGender" class="bg-slate-700/70 text-slate-200 text-xs px-2.5 py-0.5 rounded-full font-semibold flex items-center gap-1.5 border border-slate-600/50">
+              <i class="fa-solid fa-mars text-blue-400"></i> Jantan (Steril)
+            </span>
+          </div>
+
+          <p id="dispPetBio" class="text-sm text-slate-300 max-w-xl font-normal leading-relaxed">
+            Warna: <strong id="dispCoatSpan" class="text-white font-semibold">Abu-Abu</strong> • Profil: <span id="dispBioSpan" class="text-slate-200">Lengkapi Pet Bio.</span>
+          </p>
+
+          <!-- Core Health Metrics -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+            <div class="bg-white/5 border border-white/10 rounded-2xl p-3 text-center backdrop-blur-xs">
+              <span class="text-xs text-slate-400 block font-medium">Usia Saat Ini</span>
+              <span id="dispPetAge" class="text-base font-bold text-white">2 Thn 5 Bln</span>
+            </div>
+            <div class="bg-white/5 border border-white/10 rounded-2xl p-3 text-center backdrop-blur-xs">
+              <span class="text-xs text-slate-400 block font-medium">Berat Saat Ini</span>
+              <span id="dispCurrentWeight" class="text-base font-bold text-amber-400">4.6 kg</span>
+            </div>
+            <div class="bg-white/5 border border-white/10 rounded-2xl p-3 text-center backdrop-blur-xs">
+              <span class="text-xs text-slate-400 block font-medium">Target Ideal</span>
+              <span id="dispTargetWeight" class="text-base font-bold text-emerald-400">5.0 kg</span>
+            </div>
+            <div class="bg-white/5 border border-white/10 rounded-2xl p-3 text-center backdrop-blur-xs">
+              <span class="text-xs text-slate-400 block font-medium">Body Condition Score</span>
+              <span id="dispBcsStatus" class="text-base font-bold text-sky-400">Ideal (5/9)</span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <button id="btnEditProfile" onclick="openProfileModal()" class="w-full md:w-auto bg-white/10 hover:bg-white/20 border border-white/20 px-4 py-2.5 rounded-2xl text-xs font-semibold text-white transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-sliders"></i> Perbarui Profil
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto no-scrollbar">
+      <button onclick="switchTab('tab-dashboard')" class="nav-tab active-tab px-4 py-2 rounded-xl text-sm font-bold bg-slate-900 text-white shadow-sm flex items-center gap-2 whitespace-nowrap" data-target="tab-dashboard">
+        <i class="fa-solid fa-gauge-high text-xs"></i> Dashboard
+      </button>
+      <button onclick="switchTab('tab-weight')" class="nav-tab px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-2 whitespace-nowrap" data-target="tab-weight">
+        <i class="fa-solid fa-weight-scale text-xs"></i> Kontrol Berat & Nutrisi
+      </button>
+      <button onclick="switchTab('tab-health')" class="nav-tab px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-2 whitespace-nowrap" data-target="tab-health">
+        <i class="fa-solid fa-notes-medical text-xs"></i> Data Medis & Vaksin
+      </button>
+      <button onclick="switchTab('tab-favorites')" class="nav-tab px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-2 whitespace-nowrap" data-target="tab-favorites">
+        <i class="fa-solid fa-heart text-xs text-rose-500"></i> Preferensi
+      </button>
+      <button onclick="switchTab('tab-supplies')" class="nav-tab px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-2 whitespace-nowrap" data-target="tab-supplies">
+        <i class="fa-solid fa-boxes-packing text-xs text-emerald-600"></i> Perlengkapan & Budget
+      </button>
+    </div>
+
+    <!-- TAB 1: DASHBOARD -->
+    <section id="tab-dashboard" class="tab-pane space-y-6">
+
+      <!-- Today Quick Actions -->
+      <div class="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-base font-bold text-slate-900">Monitor Pola Harian</h3>
+            <p class="text-xs text-slate-500 font-medium">Klik untuk memantau pola asupan dan kesehatan harian.</p>
+          </div>
+          <span id="todayDateStr" class="text-xs font-semibold px-3 py-1.5 bg-slate-100 rounded-xl text-slate-600 border border-slate-200/60">Kamis, 1 Okt 2026</span>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <button onclick="openLogModal('meal')" class="action-card p-3 rounded-2xl border border-amber-200/70 bg-amber-50/40 hover:bg-amber-100/50 flex flex-col items-center justify-center text-center">
+            <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center mb-2 shadow-xs">
+              <i class="fa-solid fa-bowl-food"></i>
+            </div>
+            <span class="text-xs font-bold text-amber-950">Nutrisi</span>
+            <span class="text-[11px] text-amber-800">Dry / Wet Food</span>
+          </button>
+
+          <button onclick="openLogModal('water')" class="action-card p-3 rounded-2xl border border-sky-200/70 bg-sky-50/40 hover:bg-sky-100/50 flex flex-col items-center justify-center text-center">
+            <div class="w-10 h-10 rounded-xl bg-sky-500 text-white flex items-center justify-center mb-2 shadow-xs">
+              <i class="fa-solid fa-faucet-drip"></i>
+            </div>
+            <span class="text-xs font-bold text-sky-950">Hidrasi</span>
+            <span class="text-[11px] text-sky-800">Cegah FLUTD</span>
+          </button>
+
+          <button onclick="openLogModal('litter')" class="action-card p-3 rounded-2xl border border-emerald-200/70 bg-emerald-50/40 hover:bg-emerald-100/50 flex flex-col items-center justify-center text-center">
+            <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center mb-2 shadow-xs">
+              <i class="fa-solid fa-box-open"></i>
+            </div>
+            <span class="text-xs font-bold text-emerald-950">Litter Box</span>
+            <span class="text-[11px] text-emerald-800">Urin & Feses</span>
+          </button>
+
+          <button onclick="openLogModal('grooming')" class="action-card p-3 rounded-2xl border border-purple-200/70 bg-purple-50/40 hover:bg-purple-100/50 flex flex-col items-center justify-center text-center">
+            <div class="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center mb-2 shadow-xs">
+              <i class="fa-solid fa-scissors"></i>
+            </div>
+            <span class="text-xs font-bold text-purple-950">Grooming</span>
+            <span class="text-[11px] text-purple-800">Sisir Undercoat</span>
+          </button>
+
+          <button onclick="openLogModal('health')" class="action-card p-3 rounded-2xl border border-rose-200/70 bg-rose-50/40 hover:bg-rose-100/50 flex flex-col items-center justify-center text-center">
+            <div class="w-10 h-10 rounded-xl bg-rose-500 text-white flex items-center justify-center mb-2 shadow-xs">
+              <i class="fa-solid fa-heart-pulse"></i>
+            </div>
+            <span class="text-xs font-bold text-rose-950">Observasi Fisik</span>
+            <span class="text-[11px] text-rose-800">Mood / Hairball</span>
+          </button>
+
+          <button onclick="openLogModal('weight')" class="action-card p-3 rounded-2xl border border-indigo-200/70 bg-indigo-50/40 hover:bg-indigo-100/50 flex flex-col items-center justify-center text-center">
+            <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center mb-2 shadow-xs">
+              <i class="fa-solid fa-scale-balanced"></i>
+            </div>
+            <span class="text-xs font-bold text-indigo-950">Timbang BB</span>
+            <span class="text-[11px] text-indigo-800">Gramatur Akurat</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+        <!-- Riwayat Aktivitas Terkini -->
+        <div class="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <i class="fa-solid fa-clock-rotate-left text-slate-500"></i> Riwayat Aktivitas Terkini
+                </h3>
+                <p class="text-[11px] text-slate-500">Log pencatatan dan histori kegiatan Luxo hari ini</p>
+              </div>
+              <button onclick="clearActivityLogs()" class="text-xs text-rose-600 hover:text-rose-700 font-semibold transition">
+                Bersihkan Riwayat
+              </button>
+            </div>
+            <div id="activityLogsList" class="space-y-3 h-[300px] overflow-y-auto pr-1"></div>
+          </div>
+        </div>
+
+        <!-- Rutinitas Harian -->
+        <div class="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-4">
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <i class="fa-solid fa-list-check text-sky-600"></i> Rutinitas Harian
+                </h3>
+                <p class="text-[11px] text-slate-500">Checklist pemeliharaan harian.</p>
+              </div>
+              <button onclick="openRoutineModal()" class="w-8 h-8 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-700 flex items-center justify-center text-xs transition font-bold" title="Tambah Rutinitas">
+                <i class="fa-solid fa-plus"></i>
+              </button>
+            </div>
+
+            <!-- Sub-tabs: To Do vs Done -->
+            <div class="flex items-center gap-1.5 p-1 bg-slate-100 rounded-2xl mb-3">
+              <button id="btnSubtabTodo" onclick="switchRoutineSubtab('todo')" class="flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 bg-white text-slate-900 shadow-xs">
+                <span>To Do</span>
+                <span id="badgeTodoCount" class="text-[10px] px-1.5 py-0.2 rounded-full bg-sky-100 text-sky-700">3</span>
+              </button>
+              <button id="btnSubtabDone" onclick="switchRoutineSubtab('done')" class="flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold text-slate-500 hover:text-slate-800 transition flex items-center justify-center gap-1.5">
+                <span>Done</span>
+                <span id="badgeDoneCount" class="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-700">2</span>
+              </button>
+            </div>
+            
+            <div class="space-y-2 text-xs font-medium h-[240px] overflow-y-auto pr-1" id="routineContainer"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+        <div class="lg:col-span-2 bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-4 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-sm">
+                  <i class="fa-solid fa-scissors"></i>
+                </div>
+                <div>
+                  <h3 class="text-base font-bold text-slate-900 leading-tight">Agenda Jadwal Grooming</h3>
+                  <p id="dispGroomingSubtitle" class="text-[11px] text-slate-500">Jadwal perawatan berkala Luxo</p>
+                </div>
+              </div>
+              <button onclick="openGroomingScheduleModal()" class="px-3.5 py-2 rounded-xl bg-purple-50 hover:bg-purple-100/80 text-purple-700 flex items-center gap-2 text-xs transition font-bold shadow-2xs" title="Kelola Jadwal">
+                <i class="fa-solid fa-calendar-plus text-xs"></i>
+                <span>Kelola Jadwal</span>
+              </button>
+            </div>
+            <div id="dashboardGroomingList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5"></div>
+          </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-3xl p-6 shadow-sm space-y-3 border border-slate-800 flex flex-col justify-between">
+          <div class="space-y-2.5">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div class="flex items-center gap-2 text-amber-400">
+                <i class="fa-solid fa-triangle-exclamation text-base"></i>
+                <h4 class="font-bold text-xs uppercase tracking-wider">Perhatian Khusus Ras British Shorthair</h4>
+              </div>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed font-normal">
+              British Shorthair memiliki kerentanan tinggi terhadap kristal urin (FLUTD) dan kelebihan berat badan pasca steril. Selalu imbangi dry food dengan asupan wet food berair tinggi.
+            </p>
+          </div>
+          <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between">
+            <span class="text-[11px] text-slate-400">©The Nomad Times</span>
+            <button onclick="openGroomingScheduleModal()" class="text-xs text-purple-300 hover:text-purple-200 font-semibold flex items-center gap-1">
+              <span>Atur Notifikasi</span>
+              <i class="fa-solid fa-arrow-right text-[10px]"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: KONTROL BERAT & NUTRISI -->
+    <section id="tab-weight" class="tab-pane hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-chart-line text-sky-600"></i> Kurva Pertumbuhan & Analitik Berat
+              </h3>
+              <p class="text-xs text-slate-500">Standar BSH Dewasa: Jantan 5.0 - 8.0 kg | Betina 4.0 - 6.0 kg</p>
+            </div>
+            <button onclick="openLogModal('weight')" class="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold flex items-center gap-1.5 transition">
+              <i class="fa-solid fa-plus text-[10px]"></i> Tambah Pengukuran
+            </button>
+          </div>
+          <div class="relative h-72 w-full pt-2">
+            <canvas id="weightChart"></canvas>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-4">
+          <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+            <i class="fa-solid fa-calculator text-amber-500"></i> Kalkulator Kebutuhan Kalori
+          </h3>
+          <p class="text-xs text-slate-500">Formulasi Rest Energy Requirement (RER) berbasis bobot metabolik.</p>
+
+          <div class="space-y-3">
+            <div>
+              <label class="text-xs font-semibold text-slate-700">Berat Kucing Terkini (kg)</label>
+              <input type="number" id="calcWeight" step="0.1" value="4.6" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900">
+            </div>
+
+            <div>
+              <label class="text-xs font-semibold text-slate-700">Kondisi Fisiologis</label>
+              <select id="calcFactor" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900">
+                <option value="1.2" selected>Dewasa Steril (Standar Pemeliharaan Indoor)</option>
+                <option value="1.0">Manajemen Reduksi Bobot (Kucing Obesitas)</option>
+                <option value="1.4">Dewasa Non-Steril / Aktif</option>
+                <option value="2.0">Kitten Pertumbuhan (&lt; 1 Tahun)</option>
+              </select>
+            </div>
+
+            <button onclick="calculateDailyCalories()" class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition">
+              Hitung Kebutuhan Energi
+            </button>
+
+            <div id="calorieResultBox" class="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center space-y-1">
+              <span class="text-xs text-slate-500 font-semibold block">Target Asupan Harian:</span>
+              <span id="resCalories" class="text-2xl font-black text-slate-900">264 kcal</span>
+              <p class="text-[11px] text-slate-600 pt-1 leading-relaxed">
+                Setara porsi harian: ~<span id="resDryGrams" class="font-bold text-slate-900">66g</span> Dry Food (400 kcal/100g) atau kombinasi wet food + kibble seimbang.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: DATA MEDIS & VAKSIN -->
+    <section id="tab-health" class="tab-pane hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-syringe text-emerald-600"></i> Rekam Data Medis & Vaksin
+              </h3>
+              <p class="text-xs text-slate-500">Pencatatan profilaksis, imunisasi, dan penanganan terapeutik</p>
+            </div>
+            <button onclick="openMedicalModal()" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1.5 transition">
+              <i class="fa-solid fa-plus text-[10px]"></i> Tambah Data Medis
+            </button>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-600">
+              <thead class="text-xs uppercase bg-slate-50 text-slate-500 font-semibold">
+                <tr>
+                  <th class="px-4 py-3 rounded-l-xl">Tindakan / Profilaksis</th>
+                  <th class="px-3 py-3">Tanggal Diberikan</th>
+                  <th class="px-3 py-3">Jadwal Berikutnya</th>
+                  <th class="px-3 py-3">Status</th>
+                  <th class="px-3 py-3">Catatan / Keterangan</th>
+                  <th class="px-4 py-3 text-right rounded-r-xl">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="medScheduleBody" class="divide-y divide-slate-100 text-xs"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+              <i class="fa-solid fa-hospital text-rose-500"></i> Kontak Dokter & Catatan Klinis
+            </h3>
+            <button onclick="openVetModal()" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center text-xs transition" title="Tambah Informasi">
+              <i class="fa-solid fa-plus"></i>
+            </button>
+          </div>
+          <div id="vetInfoContainer" class="space-y-3"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: PREFERENSI -->
+    <section id="tab-favorites" class="tab-pane hidden space-y-6">
+      <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-lg font-bold text-slate-900">Preferensi Pet</h3>
+              <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-100">Karakter & Bonding</span>
+            </div>
+            <p class="text-xs text-slate-500 font-medium mt-0.5">Catatan khusus tentang kebiasaan dan kesukaan Luxo.</p>
+          </div>
+          <button onclick="openFavoriteModal()" class="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold flex items-center gap-2 transition shadow-xs shrink-0">
+            <i class="fa-solid fa-plus text-xs"></i> Tambah Preferensi
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- 1. Manusia Favorit -->
+          <div class="rounded-3xl border border-rose-200/80 bg-rose-50/20 p-5 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl bg-rose-500 text-white flex items-center justify-center text-xs shadow-xs">
+                  <i class="fa-solid fa-user-heart"></i>
+                </div>
+                <div>
+                  <h4 class="text-sm font-bold text-slate-900">Manusia Favorit</h4>
+                  <span class="text-[11px] text-rose-900 font-medium">Orang yang disukai & kebiasaan bonding</span>
+                </div>
+              </div>
+              <button onclick="openFavoriteModal(null, 'human')" class="text-xs text-rose-700 hover:text-rose-800 font-bold flex items-center gap-1">
+                <i class="fa-solid fa-plus text-[10px]"></i> Tambah
+              </button>
+            </div>
+            <div id="favListHuman" class="space-y-2"></div>
+          </div>
+
+          <!-- 2. Makanan Favorit -->
+          <div class="rounded-3xl border border-amber-200/80 bg-amber-50/20 p-5 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center text-xs shadow-xs">
+                  <i class="fa-solid fa-bowl-food"></i>
+                </div>
+                <div>
+                  <h4 class="text-sm font-bold text-slate-900">Makanan Favorit</h4>
+                  <span class="text-[11px] text-amber-900 font-medium">Snack, wet food, & kibble pilihan</span>
+                </div>
+              </div>
+              <button onclick="openFavoriteModal(null, 'food')" class="text-xs text-amber-700 hover:text-amber-800 font-bold flex items-center gap-1">
+                <i class="fa-solid fa-plus text-[10px]"></i> Tambah
+              </button>
+            </div>
+            <div id="favListFood" class="space-y-2"></div>
+          </div>
+
+          <!-- 3. Mainan Favorit -->
+          <div class="rounded-3xl border border-purple-200/80 bg-purple-50/20 p-5 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center text-xs shadow-xs">
+                  <i class="fa-solid fa-baseball"></i>
+                </div>
+                <div>
+                  <h4 class="text-sm font-bold text-slate-900">Mainan Favorit</h4>
+                  <span class="text-[11px] text-purple-900 font-medium">Stimulasi fisik, tongkat, & puzzle toy</span>
+                </div>
+              </div>
+              <button onclick="openFavoriteModal(null, 'toy')" class="text-xs text-purple-700 hover:text-purple-800 font-bold flex items-center gap-1">
+                <i class="fa-solid fa-plus text-[10px]"></i> Tambah
+              </button>
+            </div>
+            <div id="favListToy" class="space-y-2"></div>
+          </div>
+
+          <!-- 4. Lokasi Favorit -->
+          <div class="rounded-3xl border border-sky-200/80 bg-sky-50/20 p-5 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl bg-sky-600 text-white flex items-center justify-center text-xs shadow-xs">
+                  <i class="fa-solid fa-location-dot"></i>
+                </div>
+                <div>
+                  <h4 class="text-sm font-bold text-slate-900">Lokasi Favorit</h4>
+                  <span class="text-[11px] text-sky-900 font-medium">Sudut berjemur, cat tree, & tempat santai</span>
+                </div>
+              </div>
+              <button onclick="openFavoriteModal(null, 'spot')" class="text-xs text-sky-700 hover:text-sky-800 font-bold flex items-center gap-1">
+                <i class="fa-solid fa-plus text-[10px]"></i> Tambah
+              </button>
+            </div>
+            <div id="favListSpot" class="space-y-2"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: PERLENGKAPAN & BUDGET (PERSIS SEPERTI GAMBAR) -->
+    <section id="tab-supplies" class="tab-pane hidden space-y-6">
+      
+      <!-- 4 Summary Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-gradient-to-br from-emerald-600 to-teal-800 rounded-3xl p-5 text-white shadow-lg space-y-1 relative overflow-hidden">
+          <div class="absolute -right-4 -bottom-4 text-white/10 text-6xl pointer-events-none">
+            <i class="fa-solid fa-wallet"></i>
+          </div>
+          <span class="text-xs font-semibold text-emerald-100 uppercase tracking-wider block">Total Estimasi Kebutuhan</span>
+          <h3 id="budgetTotalCost" class="text-2xl font-black">Rp 1.185.000</h3>
+          <p class="text-[11px] text-emerald-100/90 pt-1">Akumulasi seluruh perlengkapan aktif</p>
+        </div>
+
+        <div class="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs space-y-1">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Rutin Bulanan</span>
+            <span class="w-7 h-7 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xs">
+              <i class="fa-solid fa-arrows-rotate"></i>
+            </span>
+          </div>
+          <h3 id="budgetMonthlyCost" class="text-xl font-extrabold text-slate-900">Rp 960.000</h3>
+          <p class="text-[11px] text-slate-500">Dry food, wet food, & pasir</p>
+        </div>
+
+        <div class="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs space-y-1">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Aset / Sekali Beli</span>
+            <span class="w-7 h-7 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center text-xs">
+              <i class="fa-solid fa-shirt"></i>
+            </span>
+          </div>
+          <h3 id="budgetAssetCost" class="text-xl font-extrabold text-slate-900">Rp 225.000</h3>
+          <p class="text-[11px] text-slate-500">Mainan, pakaian, & aksesoris</p>
+        </div>
+
+        <div class="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs space-y-1">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Item Terdata</span>
+            <span class="w-7 h-7 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xs">
+              <i class="fa-solid fa-boxes-stacked"></i>
+            </span>
+          </div>
+          <h3 id="budgetTotalItems" class="text-xl font-extrabold text-slate-900">6 Produk</h3>
+          <p class="text-[11px] text-slate-500">Katalog perlengkapan terpantau</p>
+        </div>
+      </div>
+
+      <!-- Main Supplies Catalog -->
+      <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs space-y-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-lg font-bold text-slate-900">Katalog Perlengkapan & Kebutuhan Pet</h3>
+              <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">Budgeting & Re-order</span>
+            </div>
+            <p class="text-xs text-slate-500 font-medium mt-0.5">Data perlengkapan dan biaya kebutuhan, informasi stock, dan link produk untuk pembelian ulang.</p>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <button onclick="openSupplyModal()" class="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold flex items-center gap-2 transition shadow-xs">
+              <i class="fa-solid fa-plus text-xs"></i> Tambah Perlengkapan
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter Chips -->
+        <div class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar text-xs">
+          <button onclick="filterSupplies('all')" class="supply-filter active-filter px-3.5 py-1.5 rounded-xl font-bold bg-slate-900 text-white transition whitespace-nowrap shadow-xs" data-filter="all">Semua Kategori</button>
+          <button onclick="filterSupplies('dry_food')" class="supply-filter px-3.5 py-1.5 rounded-xl font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition whitespace-nowrap" data-filter="dry_food">Dry Food</button>
+          <button onclick="filterSupplies('wet_food')" class="supply-filter px-3.5 py-1.5 rounded-xl font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition whitespace-nowrap" data-filter="wet_food">Wet Food</button>
+          <button onclick="filterSupplies('litter')" class="supply-filter px-3.5 py-1.5 rounded-xl font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition whitespace-nowrap" data-filter="litter">Pasir & Sanitasi</button>
+          <button onclick="filterSupplies('toys')" class="supply-filter px-3.5 py-1.5 rounded-xl font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition whitespace-nowrap" data-filter="toys">Mainan</button>
+          <button onclick="filterSupplies('apparel')" class="supply-filter px-3.5 py-1.5 rounded-xl font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition whitespace-nowrap" data-filter="apparel">Pakaian & Aksesoris</button>
+          <button onclick="filterSupplies('grooming')" class="supply-filter px-3.5 py-1.5 rounded-xl font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition whitespace-nowrap" data-filter="grooming">Grooming & Kesehatan</button>
+        </div>
+
+        <!-- Cards View -->
+        <div id="suppliesListContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: Tambah/Edit Perlengkapan -->
+  <div id="supplyModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 id="supplyModalTitle" class="text-base font-bold text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-boxes-packing text-emerald-600"></i> Kelola Perlengkapan & Budget
+        </h3>
+        <button onclick="closeSupplyModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <form id="supplyForm" class="space-y-3.5 text-xs">
+        <input type="hidden" id="fieldSupplyId">
+        <div>
+          <label class="font-semibold text-slate-700">Nama Produk / Perlengkapan</label>
+          <input type="text" id="fieldSupplyName" placeholder="Contoh: Royal Canin British Shorthair Adult 2kg" required class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 outline-none">
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="font-semibold text-slate-700">Kategori Perlengkapan</label>
+            <select id="fieldSupplyCategory" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 outline-none">
+              <option value="dry_food">Dry Food</option>
+              <option value="wet_food">Wet Food</option>
+              <option value="litter">Pasir & Sanitasi</option>
+              <option value="toys">Mainan</option>
+              <option value="apparel">Pakaian & Aksesoris</option>
+              <option value="grooming">Grooming & Kesehatan</option>
+            </select>
+          </div>
+          <div>
+            <label class="font-semibold text-slate-700">Siklus / Tipe Pengeluaran</label>
+            <select id="fieldSupplyExpenseType" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 outline-none">
+              <option value="monthly">Rutin Bulanan</option>
+              <option value="asset">Aset / Sekali Beli</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="font-semibold text-slate-700">Jumlah (Qty)</label>
+            <input type="number" id="fieldSupplyQty" min="1" value="1" required class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 outline-none">
+          </div>
+          <div>
+            <label class="font-semibold text-slate-700">Harga Satuan (Rp)</label>
+            <input type="number" id="fieldSupplyPrice" min="0" placeholder="Contoh: 345000" required class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="font-semibold text-slate-700 flex items-center justify-between">
+            <span>Link URL Produk (Untuk Beli Ulang)</span>
+            <span class="text-[10px] text-slate-400 font-normal">Tokopedia, Shopee, atau Petshop Online</span>
+          </label>
+          <div class="relative mt-1">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 pointer-events-none">
+              <i class="fa-solid fa-link text-xs"></i>
+            </span>
+            <input type="url" id="fieldSupplyUrl" placeholder="https://tokopedia.com/..." class="w-full pl-8 pr-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="font-semibold text-slate-700">Catatan / Status Stok</label>
+          <input type="text" id="fieldSupplyNotes" placeholder="Misal: Kibble khusus bentuk bulan sabit rahang BSH" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 outline-none">
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3">
+          <button type="button" onclick="closeSupplyModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50">Batal</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold transition">Simpan Perlengkapan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Quick Log Universal -->
+  <div id="quickLogModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 id="modalLogTitle" class="text-base font-bold text-slate-900 flex items-center gap-2"></h3>
+        <button onclick="closeLogModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <form id="quickLogForm" class="space-y-4">
+        <input type="hidden" id="logTypeInput">
+        <div id="modalDynamicFields" class="space-y-3"></div>
+
+        <div>
+          <label class="text-xs font-semibold text-slate-700">Catatan Observasi</label>
+          <input type="text" id="logNotesInput" placeholder="Contoh: Sangat aktif, nafsu makan normal" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900">
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button type="button" onclick="closeLogModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50">Batal</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition">Simpan Catatan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Grooming Schedule -->
+  <div id="groomingScheduleModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-sm">
+            <i class="fa-solid fa-scissors"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-slate-900">Jadwal & Pengingat Grooming</h3>
+            <p class="text-[11px] text-slate-500">Notifikasi audio, getar, & alarm visual di perangkat Anda</p>
+          </div>
+        </div>
+        <button onclick="closeGroomingScheduleModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <div id="notifStatusCard" class="p-3.5 rounded-2xl bg-purple-50/90 border border-purple-200 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0">
+            <i class="fa-solid fa-bell text-xs"></i>
+          </div>
+          <div class="text-xs min-w-0">
+            <span class="font-bold text-slate-900 block" id="notifStatusTitle">Sistem Alarm Perangkat Aktif</span>
+            <span class="text-slate-600 text-[11px] block leading-tight" id="notifStatusSubtitle">Alarm suara melodi & getaran siap mengingatkan waktu perawatan</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button type="button" onclick="testDeviceAlarmFull()" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs">
+            <i class="fa-solid fa-play text-[10px]"></i>
+            <span>Tes Alarm</span>
+          </button>
+        </div>
+      </div>
+
+      <form id="addGroomingForm" class="p-4 rounded-2xl bg-slate-50 border border-slate-200/70 space-y-3 text-xs">
+        <span id="groomFormTitle" class="font-bold text-slate-800 block text-xs flex items-center gap-1.5">
+          <i class="fa-solid fa-plus-circle text-purple-600"></i> Buat Jadwal Perawatan Baru
+        </span>
+        <input type="hidden" id="groomEditId">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div>
+            <label class="font-semibold text-slate-700">Jenis Perawatan</label>
+            <input type="text" id="groomInputTitle" placeholder="Misal: Sisir Undercoat / Potong Kuku" required class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs outline-none focus:ring-2 focus:ring-purple-600">
+          </div>
+          <div>
+            <label class="font-semibold text-slate-700">Frekuensi</label>
+            <select id="groomInputFreq" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs outline-none focus:ring-2 focus:ring-purple-600">
+              <option value="Harian">Harian</option>
+              <option value="Tiap 2 Hari" selected>Tiap 2 Hari</option>
+              <option value="Mingguan">Mingguan</option>
+              <option value="Tiap 2 Minggu">Tiap 2 Minggu</option>
+              <option value="Bulanan">Bulanan</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          <div>
+            <label class="font-semibold text-slate-700">Tanggal Terjadwal</label>
+            <input type="date" id="groomInputDate" required class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs outline-none focus:ring-2 focus:ring-purple-600">
+          </div>
+          <div>
+            <label class="font-semibold text-slate-700">Waktu</label>
+            <input type="time" id="groomInputTime" value="17:00" required class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs outline-none focus:ring-2 focus:ring-purple-600">
+          </div>
+          <div>
+            <label class="font-semibold text-slate-700">Catatan Khusus</label>
+            <input type="text" id="groomInputNotes" placeholder="Misal: Gunakan slicker brush" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs outline-none focus:ring-2 focus:ring-purple-600">
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-1">
+          <button id="btnCancelEditGroom" type="button" onclick="resetGroomingForm()" class="hidden px-3.5 py-2 border border-slate-200 hover:bg-slate-100 rounded-xl font-semibold text-slate-600 transition">Batal Edit</button>
+          <button id="btnSubmitGroom" type="submit" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold transition flex items-center gap-1.5">
+            <i class="fa-solid fa-calendar-check text-[11px]"></i> <span>Simpan Jadwal</span>
+          </button>
+        </div>
+      </form>
+
+      <div class="space-y-2.5">
+        <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Daftar Jadwal Perawatan Terjadwal</h4>
+        <div id="groomingScheduleList" class="space-y-2"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Alarm Popup -->
+  <div id="groomingAlarmModal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl text-center space-y-4 border-2 border-purple-300">
+      <div class="w-16 h-16 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center mx-auto text-2xl shadow-xl pulse-alarm">
+        <i class="fa-solid fa-bell"></i>
+      </div>
+      <div>
+        <span class="text-[10px] font-extrabold uppercase tracking-widest text-purple-600 bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-200">Waktunya Perawatan</span>
+        <h3 id="alarmTitle" class="text-lg font-black text-slate-900 mt-2">Sisir Bulu Halus</h3>
+        <p id="alarmSubtitle" class="text-xs text-slate-600 mt-1 leading-relaxed">Jadwal perawatan berkala untuk Luxo</p>
+      </div>
+      <div id="alarmNotesBox" class="p-3 bg-purple-50/60 rounded-2xl border border-purple-100 text-xs text-purple-950 text-left font-medium">
+        <i class="fa-solid fa-circle-info text-purple-600 mr-1"></i>
+        <span id="alarmNotesText">Gunakan slicker brush mencegah hairball.</span>
+      </div>
+      <div class="flex flex-col gap-2 pt-1">
+        <button id="btnAlarmComplete" onclick="acknowledgeAlarm(true)" class="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition shadow-xs flex items-center justify-center gap-1.5">
+          <i class="fa-solid fa-check"></i>
+          <span>Tandai Selesai & Catat ke Log</span>
+        </button>
+        <button onclick="acknowledgeAlarm(false)" class="w-full py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition">
+          Tutup Pengingat
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Edit Profile -->
+  <div id="editProfileModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-cat text-slate-700"></i> Perbarui Profil Pet
+        </h3>
+        <button onclick="closeProfileModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <form id="profileForm" class="space-y-3.5 text-xs">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="font-semibold text-slate-700">Nama Panggilan Pet</label>
+            <input type="text" id="inputPetName" required class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 outline-none">
+          </div>
+          <div>
+            <label class="font-semibold text-slate-700">Ras Pet</label>
+            <input type="text" id="inputPetBreed" value="British Shorthair" required class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 outline-none">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="font-semibold text-slate-700">Varian / Warna Bulu</label>
+            <input type="text" id="inputPetCoat" placeholder="Misal: Abu-Abu" required class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 outline-none">
+          </div>
+          <div>
+            <label class="font-semibold text-slate-700">Tanggal Lahir</label>
+            <input type="date" id="inputPetDob" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 outline-none">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="font-semibold text-slate-700">Jenis Kelamin</label>
+            <select id="inputPetGender" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 outline-none">
+              <option value="Jantan (Steril)">Jantan (Steril)</option>
+              <option value="Betina (Steril)">Betina (Steril)</option>
+              <option value="Jantan (Utuh)">Jantan (Utuh)</option>
+              <option value="Betina (Utuh)">Betina (Utuh)</option>
+            </select>
+          </div>
+          <div>
+            <label class="font-semibold text-slate-700">Target Berat Ideal (kg)</label>
+            <input type="number" step="0.1" id="inputTargetWeight" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="font-semibold text-slate-700">Body Condition Score (BCS)</label>
+          <select id="inputPetBcs" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 outline-none">
+            <option value="Ideal (5/9)" selected>Ideal (5/9)</option>
+            <option value="Di Bawah Ideal (4/9)">Di Bawah Ideal (4/9)</option>
+            <option value="Kelebihan Bobot (6-7/9)">Kelebihan Bobot (6-7/9)</option>
+            <option value="Obesitas Berat (8-9/9)">Obesitas Berat (8-9/9)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="font-semibold text-slate-700">Keterangan Profil / Karakter</label>
+          <textarea id="inputPetBio" rows="2" placeholder="Misal: Lengkapi Pet Bio." class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 outline-none"></textarea>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3">
+          <button type="button" onclick="closeProfileModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50">Batal</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold transition">Simpan Perubahan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Routine Form -->
+  <div id="routineModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 id="routineModalTitle" class="text-base font-bold text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-list-check text-sky-600"></i> Rutinitas Harian
+        </h3>
+        <button onclick="closeRoutineModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <form id="routineForm" class="space-y-3 text-xs">
+        <input type="hidden" id="fieldRoutineId">
+        <div>
+          <label class="font-semibold text-slate-700">Tugas / Aktivitas Rutin</label>
+          <input type="text" id="fieldRoutineTask" placeholder="Contoh: Pemberian vitamin / jalan sore" required class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 outline-none">
+        </div>
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button type="button" onclick="closeRoutineModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50">Batal</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold transition">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Medical Form -->
+  <div id="medicalModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 id="medModalTitle" class="text-base font-bold text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-syringe text-emerald-600"></i> Entri Data Medis
+        </h3>
+        <button onclick="closeMedicalModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <form id="medicalForm" class="space-y-3 text-xs">
+        <input type="hidden" id="medEditId">
+        <div>
+          <label class="font-semibold text-slate-700">Tindakan / Profilaksis</label>
+          <input type="text" id="fieldMedType" placeholder="Misal: Vaksin F4 / Tetes Kutu" required class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 outline-none">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="font-semibold text-slate-700">Tanggal Diberikan</label>
+            <input type="date" id="fieldMedGiven" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 outline-none">
+          </div>
+          <div>
+            <label class="font-semibold text-slate-700">Jadwal Berikutnya</label>
+            <input type="date" id="fieldMedNext" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="font-semibold text-slate-700">Status Tindakan</label>
+          <select id="fieldMedStatus" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 outline-none">
+            <option value="Aktif" selected>Aktif</option>
+            <option value="Perlu Segera">Perlu Segera</option>
+            <option value="Selesai">Selesai</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="font-semibold text-slate-700">Catatan / Keterangan</label>
+          <input type="text" id="fieldMedNotes" placeholder="Misal: Vaksinasi tahunan lengkap" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 outline-none">
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3">
+          <button type="button" onclick="closeMedicalModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50">Batal</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold transition">Simpan Data Medis</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Vet Form -->
+  <div id="vetModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 id="vetModalTitle" class="text-base font-bold text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-hospital text-slate-700"></i> Kelola Informasi Dokter & Klinis
+        </h3>
+        <button onclick="closeVetModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <form id="vetForm" class="space-y-3 text-xs">
+        <input type="hidden" id="vetEditId">
+        <div>
+          <label class="font-semibold text-slate-700">Nama Klinik / Topik</label>
+          <input type="text" id="fieldVetTitle" placeholder="Misal: Klinik Hewan Spesialis Feline" required class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 outline-none">
+        </div>
+        <div>
+          <label class="font-semibold text-slate-700">Dokter Penanggung Jawab</label>
+          <input type="text" id="fieldVetSubtitle" placeholder="Misal: drh. Sarah & Rekan" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 outline-none">
+        </div>
+        <div>
+          <label class="font-semibold text-slate-700">Kontak / Jam Operasional</label>
+          <input type="text" id="fieldVetContact" placeholder="Misal: 0812-3456-7890 / 24 Jam" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 outline-none">
+        </div>
+        <div>
+          <label class="font-semibold text-slate-700">Kategori</label>
+          <select id="fieldVetType" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 outline-none">
+            <option value="clinic">Klinik Utama / Rutin</option>
+            <option value="emergency">Kontak Darurat 24 Jam</option>
+            <option value="screening">Hasil Skrining / Lab</option>
+          </select>
+        </div>
+        <div>
+          <label class="font-semibold text-slate-700">Catatan Khusus</label>
+          <textarea id="fieldVetNotes" rows="2" placeholder="Catatan jadwal dan fasilitas" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 outline-none"></textarea>
+        </div>
+        <div class="flex items-center justify-end gap-2 pt-3">
+          <button type="button" onclick="closeVetModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50">Batal</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold transition">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Favorite Form -->
+  <div id="favoriteModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 id="favoriteModalTitle" class="text-base font-bold text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-heart text-rose-500"></i> Entri Preferensi
+        </h3>
+        <button onclick="closeFavoriteModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <form id="favoriteForm" class="space-y-3 text-xs">
+        <input type="hidden" id="fieldFavId">
+        <div>
+          <label class="font-semibold text-slate-700">Kategori</label>
+          <select id="fieldFavCategory" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 outline-none">
+            <option value="human">Manusia Favorit</option>
+            <option value="food">Makanan Favorit</option>
+            <option value="toy">Mainan Favorit</option>
+            <option value="spot">Lokasi Favorit</option>
+          </select>
+        </div>
+        <div>
+          <label class="font-semibold text-slate-700">Nama / Judul Preferensi</label>
+          <input type="text" id="fieldFavTitle" placeholder="Misal: Mama (Bonding Dagu & Perut)" required class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 outline-none">
+        </div>
+        <div>
+          <label class="font-semibold text-slate-700">Detail Kebiasaan</label>
+          <textarea id="fieldFavDetail" rows="3" placeholder="Misal: Selalu tenang dan mendengkur saat dielus" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-slate-900 outline-none"></textarea>
+        </div>
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button type="button" onclick="closeFavoriteModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50">Batal</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold transition">Simpan Preferensi</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Dialog Konfirmasi Hapus Data -->
+  <div id="confirmDeleteModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl space-y-4">
+      <div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto text-xl">
+        <i class="fa-solid fa-trash-can"></i>
+      </div>
+      <div class="text-center space-y-1">
+        <h4 class="text-base font-bold text-slate-900">Konfirmasi Penghapusan</h4>
+        <p id="confirmDeleteMsg" class="text-xs text-slate-500 font-medium">Apakah Anda yakin ingin menghapus data ini secara permanen?</p>
+      </div>
+      <div class="flex items-center justify-center gap-2 pt-2">
+        <button id="btnCancelDelete" class="w-1/2 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition">
+          Batal
+        </button>
+        <button id="btnProceedDelete" class="w-1/2 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition">
+          Ya, Hapus
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Export Data Evaluasi Pet (PERSIS GAMBAR image_96fa2f.png) -->
+  <div id="exportReportModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-[560px] rounded-3xl p-6 shadow-2xl space-y-5 max-h-[92vh] overflow-y-auto">
+      
+      <!-- Header Modal -->
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-2xl bg-slate-950 text-sky-400 flex items-center justify-center text-lg shadow-sm">
+            <i class="fa-solid fa-file-lines"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-extrabold text-slate-900 leading-snug">Export Data Evaluasi Pet</h3>
+            <p class="text-xs text-slate-500 font-medium">Rangkuman Eksekutif Progress & Perkembangan Luxo</p>
+          </div>
+        </div>
+        <button onclick="closeExportReportModal()" class="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <!-- Card Rentang Periode Evaluasi -->
+      <div class="p-5 rounded-3xl bg-white border border-slate-200/90 shadow-2xs space-y-4">
+        <div class="flex items-center justify-between">
+          <h4 class="text-xs sm:text-sm font-extrabold text-slate-900">Rentang Periode Evaluasi</h4>
+          <span class="text-xs text-slate-400 font-normal">Pilih tanggal analisis</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs font-medium text-slate-600 block mb-1.5">Dari Tanggal</label>
+            <div class="relative">
+              <input type="date" id="exportStartDate" class="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 bg-white text-xs text-slate-800 font-medium focus:ring-2 focus:ring-slate-900 outline-none">
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-slate-600 block mb-1.5">Sampai Tanggal</label>
+            <div class="relative">
+              <input type="date" id="exportEndDate" class="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 bg-white text-xs text-slate-800 font-medium focus:ring-2 focus:ring-slate-900 outline-none">
+            </div>
+          </div>
+        </div>
+
+        <!-- Tombol Presets (Sejajar dalam 1 Baris Rapi) -->
+        <div class="flex items-center gap-1.5 sm:gap-2 pt-1 text-xs overflow-x-auto no-scrollbar">
+          <span class="text-slate-400 font-medium mr-1 shrink-0">Preset:</span>
+          <button type="button" onclick="setExportPreset('7d')" class="px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold transition text-[11px] sm:text-xs shadow-2xs whitespace-nowrap shrink-0">
+            7 Hari Terakhir
+          </button>
+          <button type="button" onclick="setExportPreset('30d')" class="px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold transition text-[11px] sm:text-xs shadow-2xs whitespace-nowrap shrink-0">
+            30 Hari Terakhir
+          </button>
+          <button type="button" onclick="setExportPreset('thisMonth')" class="px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold transition text-[11px] sm:text-xs shadow-2xs whitespace-nowrap shrink-0">
+            Bulan Ini
+          </button>
+          <button type="button" onclick="setExportPreset('all')" class="px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold transition text-[11px] sm:text-xs shadow-2xs whitespace-nowrap shrink-0">
+            Semua Data
+          </button>
+        </div>
+      </div>
+
+      <!-- Info Banner A4 -->
+      <div class="p-4 rounded-3xl bg-sky-50/70 border border-sky-100 text-xs text-sky-950 space-y-1.5">
+        <div class="flex items-center gap-2 font-bold text-sky-900">
+          <i class="fa-solid fa-circle-check text-sky-600 text-sm"></i>
+          <span>Format Executive Summary (Size A4 - 1 Page)</span>
+        </div>
+        <p class="text-[11px] text-sky-800/90 leading-relaxed font-normal">
+          Dokumen merangkum profil identitas, fluktuasi bobot, target nutrisi & kalori, rasio penyelesaian rutinitas harian, rekam medis aktif, kontak dokter hewan darurat, serta ringkasan budget bulanan.
+        </p>
+      </div>
+
+      <!-- Tombol Download PDF -->
+      <div class="pt-1">
+        <button type="button" onclick="generateExecutiveSummaryPDF()" class="w-full py-3.5 px-4 rounded-2xl bg-slate-950 hover:bg-slate-900 active:scale-[0.99] text-white text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2.5 shadow-lg shadow-slate-950/20">
+          <i class="fa-solid fa-file-pdf text-rose-400 text-sm"></i>
+          <span>Download PDF</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTAINER A4 EXECUTIVE REPORT UNTUK EXPORT PDF (PERSIS GAMBAR image_96855a.jpg) -->
+  <div style="position: fixed; left: -9999px; top: 0; z-index: -50; pointer-events: none;">
+    <div id="pdfA4Container" style="width: 210mm; min-height: 296mm; max-height: 297mm; box-sizing: border-box; background: #ffffff; color: #0f172a; font-family: 'Plus Jakarta Sans', sans-serif; padding: 10mm 12mm; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between;">
+      
+      <div>
+        <!-- 1. Header Dokumen -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0f172a; padding-bottom: 8px;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span id="pdfBrandTitle" style="font-size: 20px; font-weight: 900; letter-spacing: -0.5px; color: #0f172a;">LUXO TRACKER</span>
+              <span style="font-size: 8px; font-weight: 800; background: #0f172a; color: #ffffff; padding: 2.5px 8px; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.5px;">EXECUTIVE REPORT</span>
+            </div>
+            <p id="pdfSubHeader" style="font-size: 9.5px; color: #64748b; margin-top: 2px; font-weight: 600;">Sistem Manajemen & Evaluasi Kesehatan Berkala Luxo</p>
+          </div>
+          <div style="text-align: right; font-size: 8.5px; color: #475569;">
+            <div>Periode Evaluasi: <strong id="pdfPeriodLabel" style="color: #0f172a;">01-Sep-2026 s/d 01-Okt-2026</strong></div>
+            <div id="pdfGeneratedAt" style="color: #94a3b8; margin-top: 1.5px;">Dicetak: 01-Okt-2026 16:31</div>
+          </div>
+        </div>
+
+        <!-- 2. Profil Utama Pet Card -->
+        <div style="margin-top: 10px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; gap: 14px;">
+          <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;">
+            <div style="width: 58px; height: 58px; border-radius: 50%; overflow: hidden; background: #0f172a; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 2px solid #e2e8f0;">
+              <img id="pdfPetAvatar" crossorigin="anonymous" src="https://placehold.co/300x300/1e293b/ffffff?text=Luxo+BSH" style="width: 100%; height: 100%; object-fit: cover; display: block;" onerror="this.src='https://placehold.co/300x300/1e293b/ffffff?text=Pet'">
+            </div>
+            <div style="min-width: 0;">
+              <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                <h2 id="pdfPetName" style="font-size: 17px; font-weight: 800; margin: 0; color: #0f172a; letter-spacing: -0.3px;">Luxo</h2>
+                <span id="pdfPetBreed" style="font-size: 8.5px; font-weight: 700; background: #e0f2fe; color: #0284c7; padding: 2px 7px; border-radius: 6px;">British Shorthair</span>
+                <span id="pdfGenderSpan" style="font-size: 8.5px; font-weight: 700; background: #f1f5f9; color: #334155; padding: 2px 7px; border-radius: 6px;">Jantan (Steril)</span>
+              </div>
+              <p style="font-size: 8.5px; color: #475569; margin: 3px 0 0 0; line-height: 1.35;">
+                Varian Bulu: <strong id="pdfCoatSpan" style="color: #0f172a;">Abu-Abu</strong> • Profil: <span id="pdfBioSpan">Lengkapi Pet Bio.</span>
+              </p>
+            </div>
+          </div>
+
+          <!-- 4 Kartu Metrik di Kanan -->
+          <div style="display: flex; gap: 7px; flex-shrink: 0;">
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 5px 9px; text-align: center; min-width: 56px;">
+              <span style="font-size: 7.5px; color: #64748b; display: block; font-weight: 600;">Usia</span>
+              <strong id="pdfPetAge" style="font-size: 10px; color: #0f172a; font-weight: 800;">2 Thn 5 Bln</strong>
+            </div>
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 5px 9px; text-align: center; min-width: 56px;">
+              <span style="font-size: 7.5px; color: #64748b; display: block; font-weight: 600;">Berat Saat Ini</span>
+              <strong id="pdfCurrentWeight" style="font-size: 10px; color: #d97706; font-weight: 800;">4.6 kg</strong>
+            </div>
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 5px 9px; text-align: center; min-width: 56px;">
+              <span style="font-size: 7.5px; color: #64748b; display: block; font-weight: 600;">Target Ideal</span>
+              <strong id="pdfTargetWeight" style="font-size: 10px; color: #059669; font-weight: 800;">5 kg</strong>
+            </div>
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 5px 9px; text-align: center; min-width: 62px;">
+              <span style="font-size: 7.5px; color: #64748b; display: block; font-weight: 600;">Skor BCS</span>
+              <strong id="pdfBcsStatus" style="font-size: 10px; color: #0284c7; font-weight: 800;">Ideal (5/9)</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Dua Kolom Evaluasi: Bobot & Kepatuhan -->
+        <div style="margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          
+          <!-- Box Kiri: 1. Evaluasi Bobot & Nutrisi Periode -->
+          <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 9px 12px; background: #ffffff;">
+            <div style="font-size: 9px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.3px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px;">
+              <span>1. EVALUASI BOBOT & NUTRISI PERIODE</span>
+              <span style="color: #0284c7;"><i class="fa-solid fa-chart-line"></i></span>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 7px;">
+              <div style="background: #f8fafc; padding: 6px 8px; border-radius: 8px; border: 1px solid #f1f5f9;">
+                <span style="color: #64748b; display: block; font-size: 7.5px; font-weight: 600;">Awal Periode</span>
+                <strong id="pdfStartWeight" style="color: #0f172a; font-size: 10.5px; font-weight: 800;">4.6 kg</strong>
+              </div>
+              <div style="background: #f8fafc; padding: 6px 8px; border-radius: 8px; border: 1px solid #f1f5f9;">
+                <span style="color: #64748b; display: block; font-size: 7.5px; font-weight: 600;">Akhir Periode</span>
+                <strong id="pdfEndWeight" style="color: #0f172a; font-size: 10.5px; font-weight: 800;">4.6 kg</strong>
+              </div>
+            </div>
+            <div style="margin-top: 7px; font-size: 8px; line-height: 1.5; color: #334155;">
+              <div>Fluktuasi Bobot: <span id="pdfWeightDelta" style="font-weight: 700; color: #059669;">+0 kg (Stabil)</span></div>
+              <div>Target Kalori RER: <strong id="pdfRerKcal" style="color: #0f172a;">~264 kcal / hari</strong> (Dewasa Steril)</div>
+              <div>Pakan Utama: <span id="pdfDryFoodName">Royal Canin British Shorthair Adult 2kg</span></div>
+            </div>
+          </div>
+
+          <!-- Box Kanan: 2. Ringkasan Kepatuhan & Log -->
+          <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 9px 12px; background: #ffffff;">
+            <div style="font-size: 9px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.3px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px;">
+              <span>2. RINGKASAN KEPATUHAN & LOG</span>
+              <span style="color: #059669;"><i class="fa-solid fa-list-check"></i></span>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 7px;">
+              <div style="background: #f8fafc; padding: 6px 8px; border-radius: 8px; border: 1px solid #f1f5f9;">
+                <span style="color: #64748b; display: block; font-size: 7.5px; font-weight: 600;">Log Nutrisi & Makan</span>
+                <strong id="pdfMealLogsCount" style="color: #0f172a; font-size: 10.5px; font-weight: 800;">1 Entri</strong>
+              </div>
+              <div style="background: #f8fafc; padding: 6px 8px; border-radius: 8px; border: 1px solid #f1f5f9;">
+                <span style="color: #64748b; display: block; font-size: 7.5px; font-weight: 600;">Refill Air (Cegah FLUTD)</span>
+                <strong id="pdfWaterRefillCount" style="color: #0f172a; font-size: 10.5px; font-weight: 800;">1 Kali</strong>
+              </div>
+            </div>
+            <div style="margin-top: 7px; font-size: 8px; line-height: 1.5; color: #334155;">
+              <div>Cek Litter Box: <strong id="pdfLitterCount">0 Evaluasi</strong> • Urinasi Normal</div>
+              <div>Perawatan Undercoat: <strong id="pdfGroomingCount">1 Sesi</strong> (De-shedding)</div>
+              <div>Kepatuhan Rutinitas Harian: <strong id="pdfRoutineRate" style="color: #059669; font-weight: 800;">40% Checklist Terpenuhi</strong></div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 4. Tabel 3: Rekam Data Medis, Imunisasi, & Profilaksis Terkini -->
+        <div style="margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 12px; padding: 9px 12px; background: #ffffff;">
+          <div style="font-size: 9px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.3px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px;">
+            <span>3. REKAM DATA MEDIS, IMUNISASI, & PROFILAKSIS TERKINI</span>
+            <span style="color: #10b981;"><i class="fa-solid fa-syringe"></i></span>
+          </div>
+          <table style="width: 100%; border-collapse: collapse; margin-top: 7px; font-size: 8px; text-align: left;">
+            <thead>
+              <tr style="color: #64748b; font-weight: 700; border-bottom: 1px solid #e2e8f0;">
+                <th style="padding: 4px 6px;">Tindakan / Profilaksis</th>
+                <th style="padding: 4px 6px;">Tanggal Diberikan</th>
+                <th style="padding: 4px 6px;">Jadwal Berikutnya</th>
+                <th style="padding: 4px 6px;">Status</th>
+                <th style="padding: 4px 6px;">Catatan Klinis</th>
+              </tr>
+            </thead>
+            <tbody id="pdfMedTbody" style="color: #334155;">
+              <!-- Disuntikkan secara dinamis via JavaScript -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 5. Bagian 4 & 5: Fasilitas Medis & Estimasi Budget -->
+        <div style="margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          
+          <!-- Box Kiri: 4. Fasilitas Medis & Kontak Darurat -->
+          <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 9px 12px; background: #ffffff;">
+            <div style="font-size: 9px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.3px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px;">
+              <span>4. FASILITAS MEDIS & KONTAK DARURAT</span>
+              <span style="color: #e11d48;"><i class="fa-solid fa-hospital"></i></span>
+            </div>
+            <div id="pdfVetSummaryBox" style="margin-top: 7px; font-size: 8px; line-height: 1.55; color: #334155;">
+              <!-- Disuntikkan via JS -->
+            </div>
+          </div>
+
+          <!-- Box Kanan: 5. Estimasi Kebutuhan & Preferensi -->
+          <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 9px 12px; background: #ffffff;">
+            <div style="font-size: 9px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.3px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px;">
+              <span>5. ESTIMASI KEBUTUHAN & PREFERENSI</span>
+              <span style="color: #059669;"><i class="fa-solid fa-wallet"></i></span>
+            </div>
+            <div style="margin-top: 7px; font-size: 8px; line-height: 1.55; color: #334155;">
+              <div>Estimasi Rutin Bulanan: <strong id="pdfBudgetMonthly" style="color: #0f172a;">Rp 960.000 / bulan</strong> (<span id="pdfBudgetCount">Katalog: 6 produk terdaftar</span>)</div>
+              <div>Manusia Favorit: <strong id="pdfFavHuman" style="color: #e11d48;">Mama (Bonding Dagu & Perut)</strong></div>
+              <div>Makanan Pilihan: <span id="pdfFavFood">Freeze-Dried Salmon Bites & Gravy Chicken</span></div>
+              <div id="pdfSpeciesTip" style="color: #d97706; font-size: 7.5px; margin-top: 2px;">
+                *Catatan Ras BSH: Waspada sedimentasi FLUTD & rawat undercoat rutin.
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- 6. Footer Resmi Dokumen A4 -->
+      <div style="border-top: 1px solid #cbd5e1; padding-top: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 8px; color: #94a3b8;">
+        <div>Dokumen Rekam Evaluasi Kesehatan Pet • Dicetak dari Luxo Tracker Cloud Edition</div>
+        <div>Halaman 1 dari 1 (Dokumen Sah)</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Toast Notification Box -->
+  <div id="toastNotification" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 flex items-center gap-3 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl text-xs font-semibold border border-slate-800 pointer-events-none">
+    <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+    <span id="toastMsg">Operasi berhasil dilaksanakan.</span>
+  </div>
+
+  <script>
+    const STORAGE_KEY_PET = 'luxo_pet_profile_v10';
+    const STORAGE_KEY_LOGS = 'luxo_activity_logs_v10';
+    const STORAGE_KEY_WEIGHTS = 'luxo_weight_logs_v10';
+    const STORAGE_KEY_MEDS = 'luxo_medical_logs_v10';
+    const STORAGE_KEY_VET = 'luxo_vet_info_v10';
+    const STORAGE_KEY_ROUTINES = 'luxo_routines_v10';
+    const STORAGE_KEY_FAVS = 'luxo_favorites_v10';
+    const STORAGE_KEY_GROOM = 'luxo_groom_schedules_v10';
+    const STORAGE_KEY_SUPPLIES = 'luxo_supplies_v10';
+
+    // State Profil Pet
+    let petProfile = {
+      name: "Luxo",
+      breed: "British Shorthair",
+      coat: "Abu-Abu",
+      bio: "Lengkapi Pet Bio.",
+      gender: "Jantan (Steril)",
+      dob: "2024-05-15",
+      targetWeight: 5.0,
+      currentWeight: 4.6,
+      bcs: "Ideal (5/9)",
+      photoUrl: "https://placehold.co/300x300/334155/ffffff?text=Luxo+BSH"
+    };
+
+    // State Riwayat Bobot
+    let weightHistory = [
+      { date: "2026-06-15", weight: 4.3 },
+      { date: "2026-07-15", weight: 4.4 },
+      { date: "2026-08-15", weight: 4.5 },
+      { date: "2026-09-15", weight: 4.6 }
+    ];
+
+    // State Aktivitas
+    let activityLogs = [
+      { id: 1, type: "meal", title: "Pemberian Nutrisi", detail: "Dry Food Kibble BSH 30g", time: "12:30", date: "2026-09-30" },
+      { id: 2, type: "water", title: "Hidrasi Terjadwal", detail: "Pengisian sirkulasi air minum bersih", time: "09:15", date: "2026-09-30" },
+      { id: 3, type: "grooming", title: "Perawatan Undercoat", detail: "De-shedding bulu ganda dengan slicker brush", time: "08:00", date: "2026-09-30" }
+    ];
+
+    // State Medis
+    let medicalLogs = [
+      { id: 1, type: "Vaksin F4 (Tricat / Tetracat)", given: "2026-05-10", next: "2027-05-10", status: "Aktif", notes: "Vaksinasi tahunan lengkap" },
+      { id: 2, type: "Obat Tetes Ektoparasit (Kutu)", given: "2026-09-01", next: "2026-10-01", status: "Perlu Segera", notes: "Aplikasi rutin per 30 hari" },
+      { id: 3, type: "Obat Endoparasit (Cacing)", given: "2026-07-20", next: "2026-10-20", status: "Aktif", notes: "Drontal Cat (1 tab per 4kg)" }
+    ];
+
+    // State Vet
+    let vetRecords = [
+      {
+        id: 1,
+        title: "Klinik Hewan Spesialis Feline",
+        subtitle: "drh. Sarah & Rekan",
+        contact: "0812-3456-7890 / (021) 7890-1234",
+        type: "clinic",
+        notes: "Praktek: Senin - Sabtu (09.00 - 20.00)"
+      },
+      {
+        id: 2,
+        title: "Pusat Gawat Darurat 24 Jam",
+        subtitle: "Veterinary Emergency Hospital",
+        contact: "0811-9988-7766 (IGD 24 Jam)",
+        type: "emergency",
+        notes: "Fasilitas penanganan gawat darurat & rawat inap"
+      },
+      {
+        id: 3,
+        title: "Riwayat Skrining HCM Berkala",
+        subtitle: "Kardiologi Hewan Terpadu",
+        contact: "Hasil Evaluasi USG Doppler",
+        type: "screening",
+        notes: "Kondisi ventrikel kiri normal dan bebas penebalan patologis"
+      }
+    ];
+
+    // State Rutinitas Harian
+    let routineItems = [
+      { id: 1, task: "Pemberian nutrisi pagi dengan porsi terukur", done: false },
+      { id: 2, task: "Sanitasi & pengisian sirkulasi air minum bersih", done: true },
+      { id: 3, task: "Pemeriksaan dan pembersihan litter box", done: false },
+      { id: 4, task: "Penyisiran bulu undercoat (reduksi hairball)", done: false },
+      { id: 5, task: "Sesi stimulasi fisik & bonding 15 menit", done: true }
+    ];
+
+    // State Preferensi
+    let favoriteItems = [
+      { id: 1, category: "human", title: "Mama (Bonding Dagu & Perut)", detail: "Selalu tenang dan mendengkur saat dielus di bawah leher" },
+      { id: 2, category: "food", title: "Freeze-Dried Salmon Bites & Gravy Chicken", detail: "Camilan berprotein tinggi kesukaan saat sesi sore" },
+      { id: 3, category: "toy", title: "Tongkat Bulu Unggas & Bola Catnip", detail: "Sangat aktif mengejar dan responsif terhadap gerakan" },
+      { id: 4, category: "spot", title: "Sudut Jendela Hangat Berjemur", detail: "Tempat favorit bersantai menikmati sinar matahari pagi" }
+    ];
+
+    // State Jadwal Grooming
+    let groomingSchedules = [
+      { id: 1, title: "Sisir Bulu Halus (Undercoat)", frequency: "Tiap 2 Hari", date: "2026-10-01", nextTime: "17:00", notifyEnabled: true, notes: "Gunakan slicker brush mencegah hairball" },
+      { id: 2, title: "Pembersihan Telinga & Kantung Mata", frequency: "Mingguan", date: "2026-10-04", nextTime: "09:00", notifyEnabled: true, notes: "Gunakan cairan pembersih khusus feline" },
+      { id: 3, title: "Potong Ujung Kuku Cakar", frequency: "Tiap 2 Minggu", date: "2026-10-10", nextTime: "19:30", notifyEnabled: false, notes: "Hanya potong bagian ujung transparan" }
+    ];
+
+    // State Perlengkapan & Budgeting
+    let supplyItems = [
+      { id: 1, name: "Royal Canin British Shorthair Adult 2kg", category: "dry_food", expenseType: "monthly", qty: 1, price: 345000, productUrl: "https://tokopedia.com", notes: "Kibble khusus bentuk bulan sabit rahang BSH" },
+      { id: 2, name: "Royal Canin Instinctive Gravy Pouch (Box isi 12)", category: "wet_food", expenseType: "monthly", qty: 2, price: 210000, productUrl: "https://shopee.co.id", notes: "Asupan hidrasi harian pencegah FLUTD" },
+      { id: 3, name: "Pasir Gumpal Tofu Eco Soya 7L", category: "litter", expenseType: "monthly", qty: 3, price: 65000, productUrl: "https://tokopedia.com", notes: "Daya serap tinggi, minim debu aman pernapasan" },
+      { id: 4, name: "Tongkat Bulu Unggas & Laser Catnip", category: "toys", expenseType: "asset", qty: 1, price: 45000, productUrl: "", notes: "Stimulasi fisik indoor harian" },
+      { id: 5, name: "Rompi Harness Kucing Anti-Lepas BSH", category: "apparel", expenseType: "asset", qty: 1, price: 85000, productUrl: "", notes: "Ukuran M pas lingkar dada padat" },
+      { id: 6, name: "Sisir Slicker De-shedding Undercoat", category: "grooming", expenseType: "asset", qty: 1, price: 95000, productUrl: "", notes: "Reduksi gumpalan bulu mati" }
+    ];
+
+    let currentSupplyFilter = 'all';
+    let currentRoutineSubtab = 'todo';
+    let weightChartInstance = null;
+    let isGasEnvironment = false;
+    let deleteCallback = null;
+    let activeAlarmItem = null;
+    let audioContextInstance = null;
+
+    // Web Audio Synthesizer
+    function getAudioContext() {
+      if (!audioContextInstance) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) {
+          audioContextInstance = new AudioCtx();
+        }
+      }
+      if (audioContextInstance && audioContextInstance.state === 'suspended') {
+        audioContextInstance.resume();
+      }
+      return audioContextInstance;
+    }
+
+    function unlockAudioEngine() {
+      const ctx = getAudioContext();
+      if (ctx && ctx.state === 'suspended') ctx.resume();
+    }
+    document.addEventListener('click', unlockAudioEngine, { once: true });
+    document.addEventListener('touchstart', unlockAudioEngine, { once: true });
+
+    function playNotificationSound() {
+      try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const notes = [659.25, 830.61, 987.77];
+        notes.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.14);
+          gain.gain.setValueAtTime(0, now + idx * 0.14);
+          gain.gain.linearRampToValueAtTime(0.3, now + idx * 0.14 + 0.03);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.14 + 0.55);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + idx * 0.14);
+          osc.stop(now + idx * 0.14 + 0.55);
+        });
+      } catch (e) {
+        console.warn("Audio Context playback notice:", e);
+      }
+    }
+
+    function formatDDDMMMYYYY(dateInput, timeStr = "") {
+      if (!dateInput) return "-";
+      let dateObj;
+      if (dateInput instanceof Date) {
+        dateObj = dateInput;
+      } else if (typeof dateInput === 'string') {
+        const parts = dateInput.split('-');
+        if (parts.length === 3) {
+          dateObj = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        } else {
+          dateObj = new Date(dateInput);
+        }
+      } else {
+        dateObj = new Date();
+      }
+
+      if (isNaN(dateObj.getTime())) return dateInput;
+
+      const dayNames = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+
+      const dayOfWeek = dayNames[dateObj.getDay()];
+      const day = String(dateObj.getDate()).padStart(2, '0');
+      const month = monthNames[dateObj.getMonth()];
+      const year = dateObj.getFullYear();
+
+      const formattedDate = `${dayOfWeek}, ${day}-${month}-${year}`;
+      return timeStr ? `${formattedDate} • ${timeStr}` : formattedDate;
+    }
+
+    function renderGroomingSchedules() {
+      const subTitleEl = document.getElementById('dispGroomingSubtitle');
+      if (subTitleEl) {
+        subTitleEl.textContent = `Jadwal perawatan berkala ${petProfile.name || 'Luxo'}`;
+      }
+
+      const list = document.getElementById('dashboardGroomingList');
+      if (list) {
+        if (groomingSchedules.length === 0) {
+          list.innerHTML = `
+            <div class="col-span-full text-center py-8 text-slate-400 text-xs">
+              <i class="fa-solid fa-calendar-xmark text-2xl mb-1.5 block text-slate-300"></i>
+              Belum ada agenda perawatan terjadwal.
+            </div>
+          `;
+        } else {
+          list.innerHTML = groomingSchedules.map(g => {
+            const dateFormatted = formatDDDMMMYYYY(g.date, g.nextTime);
+            return `
+              <div class="p-4 rounded-2xl bg-[#faf7fd] border border-purple-100 hover:border-purple-200 transition shadow-2xs flex flex-col justify-between space-y-3">
+                <div class="space-y-2">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs px-3 py-1 rounded-full font-bold bg-purple-100/90 text-purple-700 shadow-2xs">${g.frequency}</span>
+                    <button onclick="editGroomingSchedule(${g.id})" class="w-7 h-7 rounded-full bg-white border border-purple-200 text-purple-600 hover:bg-purple-50 flex items-center justify-center transition shadow-2xs" title="Edit Jadwal">
+                      <i class="fa-solid fa-pen text-[10px]"></i>
+                    </button>
+                  </div>
+                  <div>
+                    <h4 class="text-sm font-bold text-slate-900 leading-snug">${g.title}</h4>
+                    <div class="text-xs font-semibold text-purple-900/90 mt-1.5 flex items-center gap-1.5">
+                      <i class="fa-regular fa-clock text-purple-600 text-xs"></i>
+                      <span>${dateFormatted}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="pt-2.5 border-t border-purple-100/80">
+                  <p class="text-xs text-slate-500 font-normal leading-relaxed">${g.notes || '-'}</p>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+      }
+
+      const modalList = document.getElementById('groomingScheduleList');
+      if (modalList) {
+        modalList.innerHTML = groomingSchedules.map(g => {
+          const dateFormatted = formatDDDMMMYYYY(g.date, g.nextTime);
+          return `
+            <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between text-xs">
+              <div>
+                <strong class="text-slate-900 block font-bold">${g.title} (${g.frequency})</strong>
+                <span class="text-slate-500">${dateFormatted}</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <button onclick="editGroomingSchedule(${g.id})" class="p-1.5 rounded-lg text-slate-500 hover:text-purple-600 transition" title="Edit Jadwal">
+                  <i class="fa-solid fa-pen text-xs"></i>
+                </button>
+                <button onclick="confirmDeleteGrooming(${g.id})" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 transition" title="Hapus Jadwal">
+                  <i class="fa-solid fa-trash-can text-xs"></i>
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    function triggerDeviceVibration() {
+      if ('vibrate' in navigator) {
+        try { navigator.vibrate([300, 150, 300, 150, 450]); } catch (e) {}
+      }
+    }
+
+    function testDeviceAlarmFull() {
+      unlockAudioEngine();
+      playNotificationSound();
+      triggerDeviceVibration();
+      showToast("Alarm melodi & getaran berhasil diuji!");
+    }
+
+    function acknowledgeAlarm(markAsCompleted = false) {
+      const modal = document.getElementById('groomingAlarmModal');
+      if (modal) modal.classList.add('hidden');
+      if (markAsCompleted && activeAlarmItem) {
+        const now = new Date();
+        const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        const dateStr = now.toISOString().split('T')[0];
+
+        const logItem = {
+          id: Date.now(),
+          type: 'grooming',
+          title: 'Perawatan Undercoat',
+          detail: `Selesai: ${activeAlarmItem.title}`,
+          time: timeStr,
+          date: dateStr
+        };
+
+        activityLogs.unshift(logItem);
+        saveStorageData();
+        renderActivityLogs();
+        if (isGasEnvironment) google.script.run.appendActivityLog(logItem);
+        showToast("Perawatan dicatat ke Riwayat Aktivitas!");
+      }
+      activeAlarmItem = null;
+    }
+
+    function updateSyncStatus(status, text) {
+      const syncEl = document.getElementById('syncIndicator');
+      if (!syncEl) return;
+      if (status === 'syncing') {
+        syncEl.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span><span class="hidden md:inline">${text || 'Menyimpan...'}</span>`;
+        syncEl.className = "text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1.5";
+      } else {
+        syncEl.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span><span class="hidden md:inline">${text || 'Online'}</span>`;
+        syncEl.className = "text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5";
+      }
+    }
+
+    function checkGasEnvironment() {
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        isGasEnvironment = true;
+        updateSyncStatus('syncing', 'Mengambil Database...');
+        google.script.run
+          .withSuccessHandler(onGasDataReceived)
+          .withFailureHandler(onGasDataError)
+          .getInitialData();
+      } else {
+        loadStorageData();
+        renderAllViews();
+        updateSyncStatus('synced', 'Online');
+      }
+    }
+
+    function onGasDataReceived(response) {
+      if (response && response.success && response.data) {
+        petProfile = Object.assign(petProfile, response.data.profile);
+        if (response.data.weights && response.data.weights.length > 0) weightHistory = response.data.weights;
+        if (response.data.logs) activityLogs = response.data.logs;
+        if (response.data.medical) medicalLogs = response.data.medical;
+        if (response.data.vetInfo && response.data.vetInfo.length > 0) vetRecords = response.data.vetInfo;
+        if (response.data.routines && response.data.routines.length > 0) routineItems = response.data.routines;
+        if (response.data.favorites && response.data.favorites.length > 0) favoriteItems = response.data.favorites;
+        if (response.data.groomingSchedules && response.data.groomingSchedules.length > 0) groomingSchedules = response.data.groomingSchedules;
+        if (response.data.supplies && response.data.supplies.length > 0) supplyItems = response.data.supplies;
+
+        saveStorageData();
+        updateSyncStatus('synced', 'Online');
+      } else {
+        loadStorageData();
+        updateSyncStatus('synced', 'Online');
+      }
+      renderAllViews();
+    }
+
+    function onGasDataError(err) {
+      console.warn("GAS load fallback ke LocalStorage:", err);
+      loadStorageData();
+      renderAllViews();
+      updateSyncStatus('synced', 'Online');
+    }
+
+    function loadStorageData() {
+      try {
+        const savedProfile = localStorage.getItem(STORAGE_KEY_PET);
+        if (savedProfile) petProfile = JSON.parse(savedProfile);
+        const savedWeights = localStorage.getItem(STORAGE_KEY_WEIGHTS);
+        if (savedWeights) weightHistory = JSON.parse(savedWeights);
+        const savedLogs = localStorage.getItem(STORAGE_KEY_LOGS);
+        if (savedLogs) activityLogs = JSON.parse(savedLogs);
+        const savedMeds = localStorage.getItem(STORAGE_KEY_MEDS);
+        if (savedMeds) medicalLogs = JSON.parse(savedMeds);
+        const savedVets = localStorage.getItem(STORAGE_KEY_VET);
+        if (savedVets) vetRecords = JSON.parse(savedVets);
+        const savedRoutines = localStorage.getItem(STORAGE_KEY_ROUTINES);
+        if (savedRoutines) routineItems = JSON.parse(savedRoutines);
+        const savedFavs = localStorage.getItem(STORAGE_KEY_FAVS);
+        if (savedFavs) favoriteItems = JSON.parse(savedFavs);
+        const savedGroom = localStorage.getItem(STORAGE_KEY_GROOM);
+        if (savedGroom) groomingSchedules = JSON.parse(savedGroom);
+        const savedSupplies = localStorage.getItem(STORAGE_KEY_SUPPLIES);
+        if (savedSupplies) supplyItems = JSON.parse(savedSupplies);
+      } catch (err) {
+        console.error("Gagal membaca LocalStorage:", err);
+      }
+    }
+
+    function saveStorageData() {
+      try {
+        localStorage.setItem(STORAGE_KEY_PET, JSON.stringify(petProfile));
+        localStorage.setItem(STORAGE_KEY_WEIGHTS, JSON.stringify(weightHistory));
+        localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(activityLogs));
+        localStorage.setItem(STORAGE_KEY_MEDS, JSON.stringify(medicalLogs));
+        localStorage.setItem(STORAGE_KEY_VET, JSON.stringify(vetRecords));
+        localStorage.setItem(STORAGE_KEY_ROUTINES, JSON.stringify(routineItems));
+        localStorage.setItem(STORAGE_KEY_FAVS, JSON.stringify(favoriteItems));
+        localStorage.setItem(STORAGE_KEY_GROOM, JSON.stringify(groomingSchedules));
+        localStorage.setItem(STORAGE_KEY_SUPPLIES, JSON.stringify(supplyItems));
+      } catch (err) {
+        console.error("Gagal menyimpan LocalStorage:", err);
+      }
+    }
+
+    function calculateAge(dobString) {
+      if (!dobString) return "2 Thn 5 Bln";
+      try {
+        const birth = new Date(dobString);
+        const now = new Date();
+        if (isNaN(birth.getTime())) return "2 Thn 5 Bln";
+        let years = now.getFullYear() - birth.getFullYear();
+        let months = now.getMonth() - birth.getMonth();
+        if (months < 0) {
+          years--;
+          months += 12;
+        }
+        return `${years} Thn ${months} Bln`;
+      } catch (e) {
+        return "2 Thn 5 Bln";
+      }
+    }
+
+    function formatToDDMMMYYYY(dateInput) {
+      if (!dateInput) return "01-Okt-2026";
+      let dateObj;
+      if (dateInput instanceof Date) {
+        dateObj = dateInput;
+      } else if (typeof dateInput === 'string') {
+        const parts = dateInput.split('-');
+        if (parts.length === 3) {
+          dateObj = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        } else {
+          dateObj = new Date(dateInput);
+        }
+      } else {
+        dateObj = new Date();
+      }
+      if (isNaN(dateObj.getTime())) return String(dateInput);
+
+      const day = String(dateObj.getDate()).padStart(2, '0');
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+      const month = monthNames[dateObj.getMonth()];
+      const year = dateObj.getFullYear();
+      return `${day}-${month}-${year}`;
+    }
+
+    function formatRupiah(num) {
+      return 'Rp ' + (num || 0).toLocaleString('id-ID');
+    }
+
+    function renderProfile() {
+      const dispName = document.getElementById('dispPetName');
+      if (dispName) dispName.textContent = petProfile.name || 'Luxo';
+      const dispBreed = document.getElementById('dispPetBreed');
+      if (dispBreed) dispBreed.textContent = petProfile.breed || 'British Shorthair';
+      const dispCoat = document.getElementById('dispCoatSpan');
+      if (dispCoat) dispCoat.textContent = petProfile.coat || 'Abu-Abu';
+      const dispBio = document.getElementById('dispBioSpan');
+      if (dispBio) dispBio.textContent = petProfile.bio || 'Lengkapi Pet Bio.';
+      const dispAge = document.getElementById('dispPetAge');
+      if (dispAge) dispAge.textContent = calculateAge(petProfile.dob);
+      const dispCurWeight = document.getElementById('dispCurrentWeight');
+      if (dispCurWeight) dispCurWeight.textContent = (petProfile.currentWeight || 4.6) + ' kg';
+      const dispTargetWeight = document.getElementById('dispTargetWeight');
+      if (dispTargetWeight) dispTargetWeight.textContent = (petProfile.targetWeight || 5.0) + ' kg';
+      const dispBcs = document.getElementById('dispBcsStatus');
+      if (dispBcs) dispBcs.textContent = petProfile.bcs || 'Ideal (5/9)';
+      const avatarEl = document.getElementById('petAvatar');
+      if (avatarEl && petProfile.photoUrl) avatarEl.src = petProfile.photoUrl;
+    }
+
+    function renderActivityLogs() {
+      const list = document.getElementById('activityLogsList');
+      if (!list) return;
+      if (activityLogs.length === 0) {
+        list.innerHTML = '<p class="text-xs text-slate-400 py-6 text-center">Belum ada aktivitas tercatat hari ini.</p>';
+        return;
+      }
+      list.innerHTML = activityLogs.map(log => {
+        let badgeColor = "bg-slate-100 text-slate-700";
+        let icon = "fa-circle-dot";
+
+        switch (log.type) {
+          case 'meal': badgeColor = "bg-amber-100 text-amber-800"; icon = "fa-bowl-food"; break;
+          case 'water': badgeColor = "bg-sky-100 text-sky-800"; icon = "fa-faucet-drip"; break;
+          case 'litter': badgeColor = "bg-emerald-100 text-emerald-800"; icon = "fa-box-open"; break;
+          case 'grooming': badgeColor = "bg-purple-100 text-purple-800"; icon = "fa-scissors"; break;
+          case 'health': badgeColor = "bg-rose-100 text-rose-800"; icon = "fa-heart-pulse"; break;
+          case 'weight': badgeColor = "bg-indigo-100 text-indigo-800"; icon = "fa-scale-balanced"; break;
+        }
+
+        const dateFormatted = formatToDDMMMYYYY(log.date || new Date());
+
+        return `
+          <div class="flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-slate-100/60 transition text-xs">
+            <div class="w-9 h-9 rounded-xl ${badgeColor} flex items-center justify-center shrink-0 text-xs shadow-2xs">
+              <i class="fa-solid ${icon}"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <strong class="text-slate-900 block font-bold text-xs">${log.title}</strong>
+              <span class="text-slate-500 truncate block text-[11px] mt-0.5">${log.detail}</span>
+            </div>
+            <div class="text-right shrink-0 ml-2">
+              <span class="text-xs font-bold text-slate-800 block">${log.time || '12:00'}</span>
+              <span class="text-[10px] text-slate-400 font-semibold block uppercase tracking-tight">${dateFormatted}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderRoutines() {
+      const container = document.getElementById('routineContainer');
+      if (!container) return;
+      const todoItems = routineItems.filter(r => !r.done);
+      const doneItems = routineItems.filter(r => r.done);
+
+      const todoBadge = document.getElementById('badgeTodoCount');
+      if (todoBadge) todoBadge.textContent = todoItems.length;
+      const doneBadge = document.getElementById('badgeDoneCount');
+      if (doneBadge) doneBadge.textContent = doneItems.length;
+
+      const items = currentRoutineSubtab === 'todo' ? todoItems : doneItems;
+      if (items.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-400 py-6 text-center">${currentRoutineSubtab === 'todo' ? 'Semua tugas telah diselesaikan!' : 'Belum ada rutinitas yang selesai.'}</p>`;
+        return;
+      }
+
+      container.innerHTML = items.map(item => `
+        <div class="p-2.5 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-between text-xs">
+          <label class="flex items-center gap-2 cursor-pointer flex-1 min-w-0 pr-2">
+            <input type="checkbox" ${item.done ? 'checked' : ''} onchange="toggleRoutine(${item.id})" class="rounded border-slate-300 text-sky-600 focus:ring-0">
+            <span class="${item.done ? 'line-through text-slate-400' : 'text-slate-800 font-medium'} truncate">${item.task}</span>
+          </label>
+          <button onclick="confirmDeleteRoutine(${item.id})" class="text-slate-400 hover:text-rose-600 text-xs px-1">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function switchRoutineSubtab(type) {
+      currentRoutineSubtab = type;
+      const btnTodo = document.getElementById('btnSubtabTodo');
+      const btnDone = document.getElementById('btnSubtabDone');
+      if (type === 'todo') {
+        btnTodo.className = "flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 bg-white text-slate-900 shadow-xs";
+        btnDone.className = "flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold text-slate-500 hover:text-slate-800 transition flex items-center justify-center gap-1.5";
+      } else {
+        btnDone.className = "flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 bg-white text-slate-900 shadow-xs";
+        btnTodo.className = "flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold text-slate-500 hover:text-slate-800 transition flex items-center justify-center gap-1.5";
+      }
+      renderRoutines();
+    }
+
+    function toggleRoutine(id) {
+      const item = routineItems.find(r => String(r.id) === String(id));
+      if (item) {
+        item.done = !item.done;
+        saveStorageData();
+        renderRoutines();
+        if (isGasEnvironment) google.script.run.saveRoutineItem(item);
+        showToast(item.done ? "Rutinitas dipindahkan ke Done!" : "Rutinitas dipindahkan ke To Do!");
+      }
+    }
+
+    function renderMedicalRecords() {
+      const tbody = document.getElementById('medScheduleBody');
+      if (!tbody) return;
+      if (medicalLogs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-slate-400">Belum ada data medis tercatat.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = medicalLogs.map(m => `
+        <tr class="border-b border-slate-100 hover:bg-slate-50/60 transition">
+          <td class="px-4 py-3 font-semibold text-slate-900">${m.type}</td>
+          <td class="px-3 py-3 text-slate-600">${m.given || '-'}</td>
+          <td class="px-3 py-3 font-bold ${m.status && m.status.includes('Segera') ? 'text-rose-600' : 'text-slate-800'}">${m.next || '-'}</td>
+          <td class="px-3 py-3">
+            <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold ${m.status === 'Aktif' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
+              ${m.status || 'Aktif'}
+            </span>
+          </td>
+          <td class="px-3 py-3 text-slate-500">${m.notes || '-'}</td>
+          <td class="px-4 py-3 text-right">
+            <button onclick="confirmDeleteMedical(${m.id})" class="text-slate-400 hover:text-rose-600 transition"><i class="fa-solid fa-trash-can"></i></button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function renderVetRecords() {
+      const container = document.getElementById('vetInfoContainer');
+      if (!container) return;
+      if (vetRecords.length === 0) {
+        container.innerHTML = '<p class="text-xs text-slate-400 py-4 text-center">Belum ada informasi dokter.</p>';
+        return;
+      }
+      container.innerHTML = vetRecords.map(v => `
+        <div class="p-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs space-y-1">
+          <div class="flex items-center justify-between">
+            <strong class="text-slate-900 font-bold">${v.title}</strong>
+            <button onclick="confirmDeleteVet(${v.id})" class="text-slate-400 hover:text-rose-600"><i class="fa-solid fa-trash-can"></i></button>
+          </div>
+          <p class="text-slate-600">${v.subtitle || ''} • <span class="text-sky-600 font-medium">${v.contact || ''}</span></p>
+          <p class="text-[11px] text-slate-500">${v.notes || ''}</p>
+        </div>
+      `).join('');
+    }
+
+    function renderFavorites() {
+      const cats = ['human', 'food', 'toy', 'spot'];
+      cats.forEach(cat => {
+        const id = 'favList' + cat.charAt(0).toUpperCase() + cat.slice(1);
+        const container = document.getElementById(id);
+        if (!container) return;
+        const items = favoriteItems.filter(f => f.category === cat);
+        if (items.length === 0) {
+          container.innerHTML = '<p class="text-xs text-slate-400 py-2 text-center">Belum ada item favorit.</p>';
+          return;
+        }
+        container.innerHTML = items.map(f => `
+          <div class="p-3 bg-white border border-slate-200/80 rounded-2xl text-xs flex items-center justify-between">
+            <div>
+              <strong class="text-slate-900 block font-semibold">${f.title}</strong>
+              <span class="text-slate-500">${f.detail || ''}</span>
+            </div>
+            <button onclick="confirmDeleteFavorite(${f.id})" class="text-slate-400 hover:text-rose-600 ml-2">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </div>
+        `).join('');
+      });
+    }
+
+    function getCategoryBadge(category) {
+      switch (category) {
+        case 'dry_food':
+          return { name: 'Dry Food', icon: 'fa-bowl-food', class: 'bg-amber-50 text-amber-800 border-amber-200/80' };
+        case 'wet_food':
+          return { name: 'Wet Food', icon: 'fa-cubes-stacked', class: 'bg-orange-50 text-orange-800 border-orange-200/80' };
+        case 'litter':
+          return { name: 'Pasir & Sanitasi', icon: 'fa-box-open', class: 'bg-emerald-50 text-emerald-800 border-emerald-200/80' };
+        case 'toys':
+          return { name: 'Mainan', icon: 'fa-baseball', class: 'bg-purple-50 text-purple-800 border-purple-200/80' };
+        case 'apparel':
+          return { name: 'Pakaian & Aksesoris', icon: 'fa-shirt', class: 'bg-pink-50 text-pink-800 border-pink-200/80' };
+        case 'grooming':
+          return { name: 'Grooming & Medis', icon: 'fa-scissors', class: 'bg-sky-50 text-sky-800 border-sky-200/80' };
+        default:
+          return { name: 'Perlengkapan', icon: 'fa-box', class: 'bg-slate-50 text-slate-800 border-slate-200/80' };
+      }
+    }
+
+    function renderSupplies() {
+      const container = document.getElementById('suppliesListContainer');
+      if (!container) return;
+      const filtered = currentSupplyFilter === 'all' ? supplyItems : supplyItems.filter(s => s.category === currentSupplyFilter);
+
+      let total = 0, monthly = 0, asset = 0;
+      supplyItems.forEach(s => {
+        const itemCost = (s.qty || 1) * (s.price || 0);
+        total += itemCost;
+        if (s.expenseType === 'monthly') monthly += itemCost;
+        else asset += itemCost;
+      });
+
+      const totalCostEl = document.getElementById('budgetTotalCost');
+      if (totalCostEl) totalCostEl.textContent = formatRupiah(total);
+      const monthlyCostEl = document.getElementById('budgetMonthlyCost');
+      if (monthlyCostEl) monthlyCostEl.textContent = formatRupiah(monthly);
+      const assetCostEl = document.getElementById('budgetAssetCost');
+      if (assetCostEl) assetCostEl.textContent = formatRupiah(asset);
+      const totalItemsEl = document.getElementById('budgetTotalItems');
+      if (totalItemsEl) totalItemsEl.textContent = supplyItems.length + ' Produk';
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<p class="col-span-full py-12 text-center text-slate-400 text-xs font-semibold">Belum ada perlengkapan pada kategori ini.</p>';
+        return;
+      }
+
+      container.innerHTML = filtered.map(s => {
+        const badge = getCategoryBadge(s.category);
+        const isMonthly = s.expenseType === 'monthly';
+        const subtotal = (s.qty || 1) * (s.price || 0);
+        const hasUrl = s.productUrl && s.productUrl.trim().length > 0;
+
+        return `
+          <div class="p-4 rounded-3xl bg-white border border-slate-200/90 hover:border-slate-300 shadow-xs space-y-3 flex flex-col justify-between transition group">
+            <div class="space-y-2">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-[10px] px-2.5 py-1 rounded-full font-bold border ${badge.class} flex items-center gap-1.5 shadow-2xs">
+                  <i class="fa-solid ${badge.icon}"></i> ${badge.name}
+                </span>
+                <span class="text-[10px] font-semibold ${isMonthly ? 'text-amber-700 bg-amber-50/80 px-2 py-0.5 rounded-md' : 'text-slate-500'}">
+                  ${isMonthly ? 'Rutin Bulanan' : 'Aset / Sekali'}
+                </span>
+              </div>
+
+              <div>
+                <h4 class="text-sm font-bold text-slate-900 group-hover:text-emerald-800 transition leading-snug">${s.name}</h4>
+                ${s.notes ? `<p class="text-[11px] text-slate-500 mt-1 leading-relaxed">${s.notes}</p>` : ''}
+              </div>
+            </div>
+
+            <div class="pt-2 border-t border-slate-100 space-y-2.5">
+              <div class="flex items-baseline justify-between text-xs">
+                <span class="text-slate-500 font-medium">${s.qty || 1} x ${formatRupiah(s.price)}</span>
+                <span class="text-sm font-black text-slate-900">${formatRupiah(subtotal)}</span>
+              </div>
+
+              <div class="flex items-center justify-between gap-2 pt-1">
+                ${hasUrl ? `
+                  <a href="${s.productUrl}" target="_blank" rel="noopener noreferrer" class="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs">
+                    <i class="fa-solid fa-cart-shopping text-xs"></i>
+                    <span>Beli Ulang</span>
+                  </a>
+                ` : `
+                  <button disabled class="flex-1 py-2 px-3 rounded-xl bg-slate-100 text-slate-400 text-xs font-semibold cursor-not-allowed flex items-center justify-center">
+                    Tanpa Link URL
+                  </button>
+                `}
+                
+                <div class="flex items-center gap-1 shrink-0">
+                  <button onclick="editSupply(${s.id})" class="p-2 rounded-xl text-slate-400 hover:text-sky-600 hover:bg-slate-50 transition text-xs" title="Edit Perlengkapan">
+                    <i class="fa-solid fa-pen"></i>
+                  </button>
+                  <button onclick="confirmDeleteSupply(${s.id})" class="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-slate-50 transition text-xs" title="Hapus">
+                    <i class="fa-solid fa-trash-can"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function filterSupplies(cat) {
+      currentSupplyFilter = cat;
+      document.querySelectorAll('.supply-filter').forEach(btn => {
+        if (btn.getAttribute('data-filter') === cat) {
+          btn.className = "supply-filter active-filter px-3.5 py-1.5 rounded-xl font-bold bg-slate-900 text-white transition whitespace-nowrap shadow-xs";
+        } else {
+          btn.className = "supply-filter px-3.5 py-1.5 rounded-xl font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition whitespace-nowrap";
+        }
+      });
+      renderSupplies();
+    }
+
+    function initWeightChart() {
+      const canvas = document.getElementById('weightChart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (weightChartInstance) weightChartInstance.destroy();
+
+      weightChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: weightHistory.map(w => w.date),
+          datasets: [{
+            label: 'Berat Badan (kg)',
+            data: weightHistory.map(w => w.weight),
+            borderColor: '#0f172a',
+            backgroundColor: 'rgba(15, 23, 42, 0.05)',
+            borderWidth: 2.5,
+            tension: 0.35,
+            fill: true,
+            pointBackgroundColor: '#0284c7',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2,
+            pointRadius: 5
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: {
+              min: 3,
+              max: 8,
+              ticks: { callback: function(val) { return val + ' kg'; } }
+            }
+          }
+        }
+      });
+    }
+
+    function calculateDailyCalories() {
+      const w = parseFloat(document.getElementById('calcWeight').value) || 4.6;
+      const factor = parseFloat(document.getElementById('calcFactor').value) || 1.2;
+      const rer = Math.round(70 * Math.pow(w, 0.75) * factor);
+      document.getElementById('resCalories').textContent = rer + ' kcal';
+      document.getElementById('resDryGrams').textContent = Math.round((rer / 400) * 100) + 'g';
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
+      const target = document.getElementById(tabId);
+      if (target) target.classList.remove('hidden');
+
+      document.querySelectorAll('.nav-tab').forEach(b => {
+        if (b.getAttribute('data-target') === tabId) {
+          b.className = "nav-tab active-tab px-4 py-2 rounded-xl text-sm font-bold bg-slate-900 text-white shadow-sm flex items-center gap-2 whitespace-nowrap";
+        } else {
+          b.className = "nav-tab px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-2 whitespace-nowrap";
+        }
+      });
+
+      if (tabId === 'tab-weight') {
+        setTimeout(initWeightChart, 80);
+      }
+    }
+
+    function openLogModal(type) {
+      const logTypeEl = document.getElementById('logTypeInput');
+      if (logTypeEl) logTypeEl.value = type;
+      const titleEl = document.getElementById('modalLogTitle');
+      if (titleEl) titleEl.innerHTML = `<i class="fa-solid fa-pen text-slate-800"></i> Catat Aktivitas Harian`;
+      
+      const dynEl = document.getElementById('modalDynamicFields');
+      if (dynEl) {
+        if (type === 'weight') {
+          dynEl.innerHTML = `
+            <div>
+              <label class="text-xs font-semibold text-slate-700">Hasil Timbang (kg)</label>
+              <input type="number" id="fieldNewWeight" step="0.05" min="1" max="15" value="${petProfile.currentWeight || 4.6}" required class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 text-sm">
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-slate-700">Tanggal Pengukuran</label>
+              <input type="date" id="fieldWeightDate" value="${new Date().toISOString().split('T')[0]}" required class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 text-sm">
+            </div>
+          `;
+        } else {
+          dynEl.innerHTML = `
+            <div>
+              <label class="text-xs font-semibold text-slate-700">Detail / Takaran</label>
+              <input type="text" id="fieldLogDetail" required placeholder="Contoh: Dry Food Kibble BSH 30g / Air Bersih" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900">
+            </div>
+          `;
+        }
+      }
+      document.getElementById('quickLogModal').classList.remove('hidden');
+    }
+    function closeLogModal() { document.getElementById('quickLogModal').classList.add('hidden'); }
+
+    function openProfileModal() {
+      document.getElementById('inputPetName').value = petProfile.name || 'Luxo';
+      document.getElementById('inputPetBreed').value = petProfile.breed || 'British Shorthair';
+      document.getElementById('inputPetCoat').value = petProfile.coat || 'Abu-Abu';
+      document.getElementById('inputPetDob').value = petProfile.dob || '2024-05-15';
+      document.getElementById('inputPetGender').value = petProfile.gender || 'Jantan (Steril)';
+      document.getElementById('inputTargetWeight').value = petProfile.targetWeight || 5.0;
+      document.getElementById('inputPetBcs').value = petProfile.bcs || 'Ideal (5/9)';
+      document.getElementById('inputPetBio').value = petProfile.bio || 'Lengkapi Pet Bio.';
+      document.getElementById('editProfileModal').classList.remove('hidden');
+    }
+    function closeProfileModal() { document.getElementById('editProfileModal').classList.add('hidden'); }
+
+    function openGroomingScheduleModal() {
+      resetGroomingForm();
+      document.getElementById('groomingScheduleModal').classList.remove('hidden');
+    }
+    function closeGroomingScheduleModal() {
+      document.getElementById('groomingScheduleModal').classList.add('hidden');
+    }
+
+    function editGroomingSchedule(id) {
+      const item = groomingSchedules.find(g => String(g.id) === String(id));
+      if (!item) return;
+
+      openGroomingScheduleModal();
+      document.getElementById('groomEditId').value = item.id;
+      document.getElementById('groomInputTitle').value = item.title || "";
+      document.getElementById('groomInputFreq').value = item.frequency || "Tiap 2 Hari";
+      document.getElementById('groomInputDate').value = item.date || new Date().toISOString().split('T')[0];
+      document.getElementById('groomInputTime').value = item.nextTime || "17:00";
+      document.getElementById('groomInputNotes').value = item.notes || "";
+
+      const titleEl = document.getElementById('groomFormTitle');
+      if (titleEl) titleEl.innerHTML = `<i class="fa-solid fa-pen-to-square text-purple-600"></i> Edit Jadwal Perawatan`;
+      const btnSubmit = document.getElementById('btnSubmitGroom');
+      if (btnSubmit) btnSubmit.innerHTML = `<i class="fa-solid fa-check text-[11px]"></i> <span>Simpan Perubahan</span>`;
+      const btnCancel = document.getElementById('btnCancelEditGroom');
+      if (btnCancel) btnCancel.classList.remove('hidden');
+    }
+
+    function resetGroomingForm() {
+      const form = document.getElementById('addGroomingForm');
+      if (form) form.reset();
+      document.getElementById('groomEditId').value = "";
+      document.getElementById('groomInputDate').value = new Date().toISOString().split('T')[0];
+      document.getElementById('groomInputTime').value = "17:00";
+      const titleEl = document.getElementById('groomFormTitle');
+      if (titleEl) titleEl.innerHTML = `<i class="fa-solid fa-plus-circle text-purple-600"></i> Buat Jadwal Perawatan Baru`;
+      const btnSubmit = document.getElementById('btnSubmitGroom');
+      if (btnSubmit) btnSubmit.innerHTML = `<i class="fa-solid fa-calendar-check text-[11px]"></i> <span>Simpan Jadwal</span>`;
+      const btnCancel = document.getElementById('btnCancelEditGroom');
+      if (btnCancel) btnCancel.classList.add('hidden');
+    }
+    function closeGroomingScheduleModal() { document.getElementById('groomingScheduleModal').classList.add('hidden'); }
+
+    function openSupplyModal(supplyData = null) {
+      const modal = document.getElementById('supplyModal');
+      const title = document.getElementById('supplyModalTitle');
+      const fieldId = document.getElementById('fieldSupplyId');
+
+      if (supplyData) {
+        if (title) title.innerHTML = `<i class="fa-solid fa-pen-to-square text-sky-600"></i> Edit Perlengkapan & Budget`;
+        if (fieldId) fieldId.value = supplyData.id;
+        document.getElementById('fieldSupplyName').value = supplyData.name || '';
+        document.getElementById('fieldSupplyCategory').value = supplyData.category || 'dry_food';
+        document.getElementById('fieldSupplyExpenseType').value = supplyData.expenseType || 'monthly';
+        document.getElementById('fieldSupplyQty').value = supplyData.qty || 1;
+        document.getElementById('fieldSupplyPrice').value = supplyData.price || 0;
+        document.getElementById('fieldSupplyUrl').value = supplyData.productUrl || '';
+        document.getElementById('fieldSupplyNotes').value = supplyData.notes || '';
+      } else {
+        if (title) title.innerHTML = `<i class="fa-solid fa-boxes-packing text-emerald-600"></i> Tambah Perlengkapan Baru`;
+        if (fieldId) fieldId.value = '';
+        document.getElementById('supplyForm').reset();
+        document.getElementById('fieldSupplyQty').value = 1;
+      }
+      if (modal) modal.classList.remove('hidden');
+    }
+    function closeSupplyModal() { document.getElementById('supplyModal').classList.add('hidden'); }
+
+    function editSupply(id) {
+      const item = supplyItems.find(s => String(s.id) === String(id));
+      if (item) openSupplyModal(item);
+    }
+
+    function openRoutineModal() {
+      document.getElementById('fieldRoutineId').value = '';
+      document.getElementById('fieldRoutineTask').value = '';
+      document.getElementById('routineModal').classList.remove('hidden');
+    }
+    function closeRoutineModal() { document.getElementById('routineModal').classList.add('hidden'); }
+
+    function openMedicalModal() {
+      document.getElementById('medEditId').value = '';
+      document.getElementById('medicalForm').reset();
+      document.getElementById('fieldMedGiven').value = new Date().toISOString().split('T')[0];
+      document.getElementById('medicalModal').classList.remove('hidden');
+    }
+    function closeMedicalModal() { document.getElementById('medicalModal').classList.add('hidden'); }
+
+    function openVetModal() {
+      document.getElementById('vetEditId').value = '';
+      document.getElementById('vetForm').reset();
+      document.getElementById('vetModal').classList.remove('hidden');
+    }
+    function closeVetModal() { document.getElementById('vetModal').classList.add('hidden'); }
+
+    function openFavoriteModal(id = null, category = 'human') {
+      document.getElementById('fieldFavId').value = '';
+      document.getElementById('fieldFavCategory').value = category;
+      document.getElementById('fieldFavTitle').value = '';
+      document.getElementById('fieldFavDetail').value = '';
+      document.getElementById('favoriteModal').classList.remove('hidden');
+    }
+    function closeFavoriteModal() { document.getElementById('favoriteModal').classList.add('hidden'); }
+
+    function openConfirmDialog(msg, callback) {
+      deleteCallback = callback;
+      const modal = document.getElementById('confirmDeleteModal');
+      const msgEl = document.getElementById('confirmDeleteMsg');
+      if (msgEl) msgEl.textContent = msg;
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    document.getElementById('btnCancelDelete')?.addEventListener('click', () => {
+      document.getElementById('confirmDeleteModal')?.classList.add('hidden');
+      deleteCallback = null;
+    });
+
+    document.getElementById('btnProceedDelete')?.addEventListener('click', () => {
+      if (typeof deleteCallback === 'function') deleteCallback();
+      document.getElementById('confirmDeleteModal')?.classList.add('hidden');
+      deleteCallback = null;
+    });
+
+    function showToast(msg) {
+      const toast = document.getElementById('toastNotification');
+      if (!toast) return;
+      const msgEl = document.getElementById('toastMsg');
+      if (msgEl) msgEl.textContent = msg;
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 2500);
+    }
+
+    // 1. Profile Form Submit
+    document.getElementById('profileForm')?.addEventListener('submit', function(e) {
+      e.preventDefault();
+      petProfile.name = document.getElementById('inputPetName').value.trim() || 'Luxo';
+      petProfile.breed = document.getElementById('inputPetBreed').value.trim() || 'British Shorthair';
+      petProfile.coat = document.getElementById('inputPetCoat').value.trim() || 'Abu-Abu';
+      petProfile.dob = document.getElementById('inputPetDob').value || '2024-05-15';
+      petProfile.gender = document.getElementById('inputPetGender').value;
+      petProfile.targetWeight = parseFloat(document.getElementById('inputTargetWeight').value) || 5.0;
+      petProfile.bcs = document.getElementById('inputPetBcs').value;
+      petProfile.bio = document.getElementById('inputPetBio').value.trim() || 'Lengkapi Pet Bio.';
+
+      saveStorageData();
+      renderProfile();
+      closeProfileModal();
+
+      if (isGasEnvironment) {
+        updateSyncStatus('syncing', 'Menyimpan Profil...');
+        google.script.run
+          .withSuccessHandler(() => {
+            updateSyncStatus('synced', 'Online');
+            showToast("Profil tersimpan di Google Sheets!");
+          })
+          .savePetProfile(petProfile);
+      } else {
+        showToast("Profil diperbarui secara lokal!");
+      }
+    });
+
+    // 2. Quick Log Form Submit
+    document.getElementById('quickLogForm')?.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const type = document.getElementById('logTypeInput').value || 'meal';
+      const notes = document.getElementById('logNotesInput').value.trim();
+      const now = new Date();
+      const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      const dateStr = now.toISOString().split('T')[0];
+
+      let title = "Aktivitas";
+      let detail = "";
+
+      if (type === 'weight') {
+        const nw = parseFloat(document.getElementById('fieldNewWeight').value) || petProfile.currentWeight;
+        const wDate = document.getElementById('fieldWeightDate').value || dateStr;
+        petProfile.currentWeight = nw;
+        const weightEntry = { date: wDate, weight: nw };
+        weightHistory.push(weightEntry);
+        weightHistory.sort((a,b) => new Date(a.date) - new Date(b.date));
+        title = "Timbang Berat Badan";
+        detail = `Bobot baru: ${nw} kg`;
+
+        if (isGasEnvironment) {
+          updateSyncStatus('syncing', 'Menyimpan Bobot...');
+          google.script.run
+            .withSuccessHandler(() => updateSyncStatus('synced', 'Online'))
+            .appendWeightLog(weightEntry);
+        }
+        initWeightChart();
+        renderProfile();
+      } else {
+        const detailEl = document.getElementById('fieldLogDetail');
+        detail = detailEl ? detailEl.value.trim() : '';
+        title = type === 'meal' ? "Pemberian Nutrisi" :
+                type === 'water' ? "Hidrasi Terjadwal" :
+                type === 'litter' ? "Pemeriksaan Litter Box" :
+                type === 'grooming' ? "Perawatan Undercoat" : "Observasi Klinis";
+      }
+
+      if (notes) detail += (detail ? ' • ' : '') + notes;
+
+      const logItem = { id: Date.now(), type, title, detail, time: timeStr, date: dateStr };
+      activityLogs.unshift(logItem);
+      saveStorageData();
+      renderActivityLogs();
+      closeLogModal();
+
+      if (isGasEnvironment) {
+        updateSyncStatus('syncing', 'Menyimpan Log...');
+        google.script.run
+          .withSuccessHandler(() => {
+            updateSyncStatus('synced', 'Online');
+            showToast("Aktivitas tersimpan di Google Sheets!");
+          })
+          .appendActivityLog(logItem);
+      } else {
+        showToast("Aktivitas dicatat secara lokal!");
+      }
+    });
+
+    // 3. Routine Form Submit & Delete
+    document.getElementById('routineForm')?.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const task = document.getElementById('fieldRoutineTask').value.trim();
+      if (!task) return;
+      const item = { id: Date.now(), task: task, done: false };
+      routineItems.push(item);
+      saveStorageData();
+      renderRoutines();
+      closeRoutineModal();
+
+      if (isGasEnvironment) {
+        updateSyncStatus('syncing', 'Menyimpan Rutinitas...');
+        google.script.run
+          .withSuccessHandler(() => {
+            updateSyncStatus('synced', 'Online');
+            showToast("Rutinitas tersimpan di Google Sheets!");
+          })
+          .saveRoutineItem(item);
+      } else {
+        showToast("Rutinitas disimpan!");
+      }
+    });
+
+    function confirmDeleteRoutine(id) {
+      openConfirmDialog("Hapus tugas rutinitas ini?", function() {
+        routineItems = routineItems.filter(r => String(r.id) !== String(id));
+        saveStorageData();
+        renderRoutines();
+        if (isGasEnvironment) {
+          updateSyncStatus('syncing', 'Menghapus Rutinitas...');
+          google.script.run
+            .withSuccessHandler(() => updateSyncStatus('synced', 'Online'))
+            .deleteRoutineItem(id);
+        }
+        showToast("Rutinitas berhasil dihapus.");
+      });
+    }
+
+    // 4. Medical Form Submit & Delete
+    document.getElementById('medicalForm')?.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const type = document.getElementById('fieldMedType').value.trim();
+      const given = document.getElementById('fieldMedGiven').value;
+      const next = document.getElementById('fieldMedNext').value;
+      const status = document.getElementById('fieldMedStatus').value;
+      const notes = document.getElementById('fieldMedNotes').value.trim();
+
+      const medEntry = {
+        id: Date.now(),
+        type, given, next, status,
+        notes: notes || 'Tindakan profilaksis'
+      };
+
+      medicalLogs.unshift(medEntry);
+      saveStorageData();
+      renderMedicalRecords();
+      closeMedicalModal();
+
+      if (isGasEnvironment) {
+        updateSyncStatus('syncing', 'Menyimpan Data Medis...');
+        google.script.run
+          .withSuccessHandler(() => {
+            updateSyncStatus('synced', 'Online');
+            showToast("Data medis tersimpan di Google Sheets!");
+          })
+          .saveMedicalLog(medEntry);
+      } else {
+        showToast("Data medis disimpan!");
+      }
+    });
+
+    function confirmDeleteMedical(id) {
+      openConfirmDialog("Hapus catatan rekam medis ini?", function() {
+        medicalLogs = medicalLogs.filter(m => String(m.id) !== String(id));
+        saveStorageData();
+        renderMedicalRecords();
+        if (isGasEnvironment) {
+          updateSyncStatus('syncing', 'Menghapus Data Medis...');
+          google.script.run
+            .withSuccessHandler(() => updateSyncStatus('synced', 'Online'))
+            .deleteMedicalLog(id);
+        }
+        showToast("Data medis berhasil dihapus.");
+      });
+    }
+
+    // 5. Vet Form Submit & Delete
+    document.getElementById('vetForm')?.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const title = document.getElementById('fieldVetTitle').value.trim();
+      const subtitle = document.getElementById('fieldVetSubtitle').value.trim();
+      const contact = document.getElementById('fieldVetContact').value.trim();
+      const type = document.getElementById('fieldVetType').value;
+      const notes = document.getElementById('fieldVetNotes').value.trim();
+
+      const vetEntry = { id: Date.now(), title, subtitle, contact, type, notes };
+      vetRecords.push(vetEntry);
+      saveStorageData();
+      renderVetRecords();
+      closeVetModal();
+
+      if (isGasEnvironment) {
+        updateSyncStatus('syncing', 'Menyimpan Info Vet...');
+        google.script.run
+          .withSuccessHandler(() => {
+            updateSyncStatus('synced', 'Online');
+            showToast("Info vet tersimpan di Google Sheets!");
+          })
+          .saveVetInfo(vetEntry);
+      } else {
+        showToast("Info vet disimpan!");
+      }
+    });
+
+    function confirmDeleteVet(id) {
+      openConfirmDialog("Hapus info dokter atau catatan klinis ini?", function() {
+        vetRecords = vetRecords.filter(v => String(v.id) !== String(id));
+        saveStorageData();
+        renderVetRecords();
+        if (isGasEnvironment) {
+          updateSyncStatus('syncing', 'Menghapus Info Vet...');
+          google.script.run
+            .withSuccessHandler(() => updateSyncStatus('synced', 'Online'))
+            .deleteVetInfo(id);
+        }
+        showToast("Info vet berhasil dihapus.");
+      });
+    }
+
+    // 6. Favorite Form Submit & Delete
+    document.getElementById('favoriteForm')?.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const category = document.getElementById('fieldFavCategory').value;
+      const title = document.getElementById('fieldFavTitle').value.trim();
+      const detail = document.getElementById('fieldFavDetail').value.trim();
+
+      if (!title) return;
+      const favEntry = { id: Date.now(), category, title, detail };
+      favoriteItems.push(favEntry);
+      saveStorageData();
+      renderFavorites();
+      closeFavoriteModal();
+
+      if (isGasEnvironment) {
+        updateSyncStatus('syncing', 'Menyimpan Preferensi...');
+        google.script.run
+          .withSuccessHandler(() => {
+            updateSyncStatus('synced', 'Online');
+            showToast("Preferensi tersimpan di Google Sheets!");
+          })
+          .saveFavoriteItem(favEntry);
+      } else {
+        showToast("Preferensi disimpan!");
+      }
+    });
+
+    function confirmDeleteFavorite(id) {
+      openConfirmDialog("Hapus entri preferensi ini?", function() {
+        favoriteItems = favoriteItems.filter(f => String(f.id) !== String(id));
+        saveStorageData();
+        renderFavorites();
+        if (isGasEnvironment) {
+          updateSyncStatus('syncing', 'Menghapus Preferensi...');
+          google.script.run
+            .withSuccessHandler(() => updateSyncStatus('synced', 'Online'))
+            .deleteFavoriteItem(id);
+        }
+        showToast("Preferensi berhasil dihapus.");
+      });
+    }
+
+    // 7. Grooming Schedule Submit & Delete
+    document.getElementById('addGroomingForm')?.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const editId = document.getElementById('groomEditId').value;
+      const title = document.getElementById('groomInputTitle').value.trim();
+      const freq = document.getElementById('groomInputFreq').value;
+      const dateVal = document.getElementById('groomInputDate').value || new Date().toISOString().split('T')[0];
+      const time = document.getElementById('groomInputTime').value;
+      const notes = document.getElementById('groomInputNotes').value.trim();
+
+      if (!title) return;
+
+      const groomItem = {
+        id: editId ? Number(editId) || editId : Date.now(),
+        title,
+        frequency: freq,
+        date: dateVal,
+        nextTime: time,
+        notifyEnabled: true,
+        notes
+      };
+
+      if (editId) {
+        const idx = groomingSchedules.findIndex(s => String(s.id) === String(editId));
+        if (idx !== -1) {
+          groomItem.notifyEnabled = groomingSchedules[idx].notifyEnabled !== false;
+          groomingSchedules[idx] = groomItem;
+        }
+        showToast("Jadwal perawatan diperbarui!");
+      } else {
+        groomingSchedules.push(groomItem);
+        showToast("Jadwal perawatan baru ditambahkan!");
+      }
+
+      saveStorageData();
+      renderGroomingSchedules();
+      resetGroomingForm();
+
+      if (isGasEnvironment) {
+        updateSyncStatus('syncing', 'Menyimpan Jadwal...');
+        google.script.run
+          .withSuccessHandler(() => {
+            updateSyncStatus('synced', 'Online');
+            showToast("Jadwal grooming tersimpan di Google Sheets!");
+          })
+          .saveGroomingSchedule(groomItem);
+      }
+    });
+
+    function confirmDeleteGrooming(id) {
+      openConfirmDialog("Hapus jadwal perawatan ini?", function() {
+        groomingSchedules = groomingSchedules.filter(s => String(s.id) !== String(id));
+        saveStorageData();
+        renderGroomingSchedules();
+        if (isGasEnvironment) {
+          updateSyncStatus('syncing', 'Menghapus Jadwal...');
+          google.script.run
+            .withSuccessHandler(() => updateSyncStatus('synced', 'Online'))
+            .deleteGroomingSchedule(id);
+        }
+        showToast("Jadwal grooming berhasil dihapus.");
+      });
+    }
+
+    // 8. Supplies Submit & Delete
+    document.getElementById('supplyForm')?.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const id = document.getElementById('fieldSupplyId').value;
+      const name = document.getElementById('fieldSupplyName').value.trim();
+      const category = document.getElementById('fieldSupplyCategory').value;
+      const expenseType = document.getElementById('fieldSupplyExpenseType').value;
+      const qty = parseInt(document.getElementById('fieldSupplyQty').value, 10) || 1;
+      const price = parseFloat(document.getElementById('fieldSupplyPrice').value) || 0;
+      const productUrl = document.getElementById('fieldSupplyUrl').value.trim();
+      const notes = document.getElementById('fieldSupplyNotes').value.trim();
+
+      if (!name) return;
+
+      const itemEntry = {
+        id: id ? Number(id) || id : Date.now(),
+        name,
+        category,
+        expenseType,
+        qty,
+        price,
+        productUrl,
+        notes
+      };
+
+      if (id) {
+        const idx = supplyItems.findIndex(s => String(s.id) === String(id));
+        if (idx !== -1) {
+          supplyItems[idx] = itemEntry;
+        } else {
+          supplyItems.unshift(itemEntry);
+        }
+        showToast("Perlengkapan berhasil diperbarui!");
+      } else {
+        supplyItems.unshift(itemEntry);
+        showToast("Perlengkapan baru ditambahkan!");
+      }
+
+      saveStorageData();
+      renderSupplies();
+      closeSupplyModal();
+
+      if (isGasEnvironment) {
+        updateSyncStatus('syncing', 'Menyimpan Perlengkapan...');
+        google.script.run
+          .withSuccessHandler(() => {
+            updateSyncStatus('synced', 'Online');
+            showToast("Perlengkapan tersimpan di Google Sheets!");
+          })
+          .saveSupplyItem(itemEntry);
+      }
+    });
+
+    function confirmDeleteSupply(id) {
+      openConfirmDialog("Hapus data perlengkapan ini?", function() {
+        supplyItems = supplyItems.filter(s => String(s.id) !== String(id));
+        saveStorageData();
+        renderSupplies();
+        if (isGasEnvironment) {
+          updateSyncStatus('syncing', 'Menghapus Perlengkapan...');
+          google.script.run
+            .withSuccessHandler(() => updateSyncStatus('synced', 'Online'))
+            .deleteSupplyItem(id);
+        }
+        showToast("Perlengkapan berhasil dihapus.");
+      });
+    }
+
+    function clearActivityLogs() {
+      if (activityLogs.length === 0) return;
+      openConfirmDialog("Bersihkan seluruh riwayat aktivitas hari ini?", function() {
+        activityLogs = [];
+        saveStorageData();
+        renderActivityLogs();
+        if (isGasEnvironment) {
+          updateSyncStatus('syncing', 'Membersihkan Log...');
+          google.script.run
+            .withSuccessHandler(() => {
+              updateSyncStatus('synced', 'Online');
+              showToast("Riwayat aktivitas di Google Sheets telah dibersihkan.");
+            })
+            .clearAllActivityLogs();
+        } else {
+          showToast("Riwayat aktivitas telah dibersihkan.");
+        }
+      });
+    }
+
+    const petPhotoInput = document.getElementById('petPhotoInput');
+    const btnTriggerPhoto = document.getElementById('btnTriggerPhoto');
+    if (btnTriggerPhoto && petPhotoInput) {
+      btnTriggerPhoto.addEventListener('click', () => petPhotoInput.click());
+
+      petPhotoInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        showToast("Mengoptimasi ukuran foto...");
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          const img = new Image();
+          img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const maxDim = 500;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height && width > maxDim) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else if (height > maxDim) {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            const avatarEl = document.getElementById('petAvatar');
+            if (avatarEl) avatarEl.src = compressedDataUrl;
+            petProfile.photoUrl = compressedDataUrl;
+            saveStorageData();
+
+            if (isGasEnvironment) {
+              showToast("Mengunggah foto ke Google Drive...");
+              google.script.run
+                .withSuccessHandler(function(res) {
+                  if (res && res.success) {
+                    petProfile.photoUrl = res.photoUrl;
+                    if (avatarEl) avatarEl.src = res.photoUrl;
+                    showToast("Foto tersimpan di Cloud Google Drive!");
+                  }
+                })
+                .uploadPetPhoto(compressedDataUrl, "Pet_" + (petProfile.name || 'Profile') + ".jpg");
+            } else {
+              showToast("Foto berhasil diperbarui!");
+            }
+          };
+          img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function openExportReportModal() {
+      const modal = document.getElementById('exportReportModal');
+      const startInput = document.getElementById('exportStartDate');
+      const endInput = document.getElementById('exportEndDate');
+      
+      const now = new Date();
+      const past30 = new Date();
+      past30.setDate(now.getDate() - 30);
+
+      if (startInput && !startInput.value) {
+        startInput.value = past30.toISOString().split('T')[0];
+      }
+      if (endInput && !endInput.value) {
+        endInput.value = now.toISOString().split('T')[0];
+      }
+
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeExportReportModal() {
+      const modal = document.getElementById('exportReportModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function setExportPreset(preset) {
+      const startInput = document.getElementById('exportStartDate');
+      const endInput = document.getElementById('exportEndDate');
+      const now = new Date();
+      let start = new Date();
+
+      if (preset === '7d') {
+        start.setDate(now.getDate() - 7);
+      } else if (preset === '30d') {
+        start.setDate(now.getDate() - 30);
+      } else if (preset === 'thisMonth') {
+        start = new Date(now.getFullYear(), now.getMonth(), 1);
+      } else if (preset === 'all') {
+        start = new Date('2024-01-01');
+      }
+
+      if (startInput) startInput.value = start.toISOString().split('T')[0];
+      if (endInput) endInput.value = now.toISOString().split('T')[0];
+    }
+
+    function populateExecutiveSummaryData(startDateStr, endDateStr) {
+      const startDate = startDateStr ? new Date(startDateStr) : new Date('2024-01-01');
+      const endDate = endDateStr ? new Date(endDateStr) : new Date();
+      endDate.setHours(23, 59, 59, 999);
+
+      // 1. Period Label & Printed Time
+      const pLabel = document.getElementById('pdfPeriodLabel');
+      if (pLabel) pLabel.textContent = `${formatToDDMMMYYYY(startDateStr)} s/d ${formatToDDMMMYYYY(endDateStr)}`;
+
+      const genAt = document.getElementById('pdfGeneratedAt');
+      if (genAt) {
+        const now = new Date();
+        const curTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        genAt.textContent = `Dicetak: ${formatToDDMMMYYYY(now)} ${curTimeStr}`;
+      }
+
+      // Title & Subtitle Header
+      const bTitle = document.getElementById('pdfBrandTitle');
+      const subHeader = document.getElementById('pdfSubHeader');
+      if (bTitle) bTitle.textContent = `${(petProfile.name || 'LUXO').toUpperCase()} TRACKER`;
+      if (subHeader) subHeader.textContent = `Sistem Manajemen & Evaluasi Kesehatan Berkala ${petProfile.breed || 'British Shorthair'}`;
+
+      // 2. Pet Profile Overview Card
+      const pAvatar = document.getElementById('pdfPetAvatar');
+      if (pAvatar && petProfile.photoUrl) pAvatar.src = petProfile.photoUrl;
+
+      const pName = document.getElementById('pdfPetName');
+      if (pName) pName.textContent = petProfile.name || 'Luxo';
+
+      const pBreed = document.getElementById('pdfPetBreed');
+      if (pBreed) pBreed.textContent = petProfile.breed || 'British Shorthair';
+
+      const pGender = document.getElementById('pdfGenderSpan');
+      if (pGender) pGender.textContent = petProfile.gender || 'Jantan (Steril)';
+
+      const pCoat = document.getElementById('pdfCoatSpan');
+      if (pCoat) pCoat.textContent = petProfile.coat || 'Abu-Abu';
+
+      const pBio = document.getElementById('pdfBioSpan');
+      if (pBio) pBio.textContent = petProfile.bio || 'Lengkapi Pet Bio.';
+
+      const pAge = document.getElementById('pdfPetAge');
+      if (pAge) pAge.textContent = calculateAge(petProfile.dob);
+
+      const pCurW = document.getElementById('pdfCurrentWeight');
+      if (pCurW) pCurW.textContent = `${petProfile.currentWeight || 4.6} kg`;
+
+      const pTarW = document.getElementById('pdfTargetWeight');
+      if (pTarW) pTarW.textContent = `${petProfile.targetWeight || 5.0} kg`;
+
+      const pBcs = document.getElementById('pdfBcsStatus');
+      if (pBcs) pBcs.textContent = petProfile.bcs || 'Ideal (5/9)';
+
+      // 3. Section 1: Evaluasi Bobot & Nutrisi Periode
+      const filteredWeights = weightHistory.filter(w => {
+        const d = new Date(w.date);
+        return d >= startDate && d <= endDate;
+      }).sort((a,b) => new Date(a.date) - new Date(b.date));
+
+      const pStartW = document.getElementById('pdfStartWeight');
+      const pEndW = document.getElementById('pdfEndWeight');
+      const pDelta = document.getElementById('pdfWeightDelta');
+
+      if (filteredWeights.length > 0) {
+        const wStart = filteredWeights[0].weight;
+        const wEnd = filteredWeights[filteredWeights.length - 1].weight;
+        const delta = Math.round((wEnd - wStart) * 100) / 100;
+        if (pStartW) pStartW.textContent = `${wStart} kg`;
+        if (pEndW) pEndW.textContent = `${wEnd} kg`;
+        if (pDelta) {
+          pDelta.textContent = delta === 0 ? `+0 kg (Stabil)` : delta > 0 ? `+${delta} kg (Stabil)` : `${delta} kg`;
+          pDelta.style.color = Math.abs(delta) <= 0.4 ? "#059669" : "#d97706";
+        }
+      } else {
+        const curW = petProfile.currentWeight || 4.6;
+        if (pStartW) pStartW.textContent = `${curW} kg`;
+        if (pEndW) pEndW.textContent = `${curW} kg`;
+        if (pDelta) {
+          pDelta.textContent = `+0 kg (Stabil)`;
+          pDelta.style.color = "#059669";
+        }
+      }
+
+      const curW = parseFloat(petProfile.currentWeight) || 4.6;
+      const rer = Math.round(70 * Math.pow(curW, 0.75) * 1.2);
+      const pRer = document.getElementById('pdfRerKcal');
+      if (pRer) pRer.textContent = `~${rer} kcal / hari`;
+
+      const dryItem = supplyItems.find(s => s.category === 'dry_food');
+      const pDryFoodName = document.getElementById('pdfDryFoodName');
+      if (pDryFoodName) pDryFoodName.textContent = dryItem ? dryItem.name : "Royal Canin British Shorthair Adult 2kg";
+
+      // 4. Section 2: Ringkasan Kepatuhan & Log
+      const filteredLogs = activityLogs.filter(log => {
+        if (!log.date) return true;
+        const d = new Date(log.date);
+        return isNaN(d.getTime()) || (d >= startDate && d <= endDate);
+      });
+
+      const mealCount = filteredLogs.filter(l => l.type === 'meal').length;
+      const waterCount = filteredLogs.filter(l => l.type === 'water').length;
+      const litterCount = filteredLogs.filter(l => l.type === 'litter').length;
+      const groomCount = filteredLogs.filter(l => l.type === 'grooming').length;
+
+      const pMeal = document.getElementById('pdfMealLogsCount');
+      if (pMeal) pMeal.textContent = `${mealCount} Entri`;
+
+      const pWater = document.getElementById('pdfWaterRefillCount');
+      if (pWater) pWater.textContent = `${waterCount} Kali`;
+
+      const pLitter = document.getElementById('pdfLitterCount');
+      if (pLitter) pLitter.textContent = `${litterCount} Evaluasi`;
+
+      const pGroom = document.getElementById('pdfGroomingCount');
+      if (pGroom) pGroom.textContent = `${groomCount} Sesi`;
+
+      const totalRoutines = routineItems.length;
+      const doneRoutines = routineItems.filter(r => r.done).length;
+      const rate = totalRoutines > 0 ? Math.round((doneRoutines / totalRoutines) * 100) : 100;
+      const pRoutine = document.getElementById('pdfRoutineRate');
+      if (pRoutine) pRoutine.textContent = `${rate}% Checklist Terpenuhi`;
+
+      // 5. Section 3: Tabel Rekam Medis
+      const medTbody = document.getElementById('pdfMedTbody');
+      if (medTbody) {
+        const topMeds = medicalLogs.slice(0, 4);
+        if (topMeds.length === 0) {
+          medTbody.innerHTML = `<tr><td colspan="5" style="padding: 6px; text-align: center; color: #94a3b8;">Belum ada rekam medis terdaftar.</td></tr>`;
+        } else {
+          medTbody.innerHTML = topMeds.map(m => {
+            const isUrgent = m.status && m.status.toLowerCase().includes('segera');
+            const statusBg = isUrgent ? '#fee2e2' : '#d1fae5';
+            const statusColor = isUrgent ? '#dc2626' : '#059669';
+            const nextColor = isUrgent ? '#dc2626' : '#0f172a';
+
+            return `
+              <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 5px 6px; font-weight: 700; color: #0f172a;">${m.type}</td>
+                <td style="padding: 5px 6px; color: #475569;">${m.given || '-'}</td>
+                <td style="padding: 5px 6px; font-weight: 800; color: ${nextColor};">${m.next || '-'}</td>
+                <td style="padding: 5px 6px;">
+                  <span style="font-size: 7.5px; font-weight: 800; background: ${statusBg}; color: ${statusColor}; padding: 2px 6px; border-radius: 5px;">
+                    ${m.status || 'Aktif'}
+                  </span>
+                </td>
+                <td style="padding: 5px 6px; color: #475569;">${m.notes || '-'}</td>
+              </tr>
+            `;
+          }).join('');
+        }
+      }
+
+      // 6. Section 4: Fasilitas Medis & Kontak Darurat
+      const pVetBox = document.getElementById('pdfVetSummaryBox');
+      if (pVetBox) {
+        const mainClinic = vetRecords.find(v => v.type === 'clinic') || vetRecords[0] || {
+          title: 'Klinik Hewan Spesialis Feline',
+          subtitle: 'drh. Sarah & Rekan',
+          contact: '0812-3456-7890'
+        };
+        const emerg = vetRecords.find(v => v.type === 'emergency') || {
+          contact: '0811-9988-7766 (IGD 24 Jam)'
+        };
+
+        pVetBox.innerHTML = `
+          <div>Klinik Utama: <strong style="color: #0f172a;">${mainClinic.title}</strong></div>
+          <div>Dokter Penanggung Jawab: <span style="color: #475569;">${mainClinic.subtitle || '-'}</span></div>
+          <div>Kontak Darurat 24 Jam: <strong style="color: #e11d48;">${emerg.contact}</strong></div>
+        `;
+      }
+
+      // 7. Section 5: Estimasi Kebutuhan & Preferensi
+      let monthlyTotal = 0;
+      supplyItems.forEach(item => {
+        if (item.expenseType === 'monthly') {
+          monthlyTotal += (item.qty || 1) * (item.price || 0);
+        }
+      });
+      const pBudgetM = document.getElementById('pdfBudgetMonthly');
+      if (pBudgetM) pBudgetM.textContent = `Rp ${monthlyTotal.toLocaleString('id-ID')} / bulan`;
+
+      const pBudgetCount = document.getElementById('pdfBudgetCount');
+      if (pBudgetCount) pBudgetCount.textContent = `Katalog: ${supplyItems.length} produk terdaftar`;
+
+      const favHuman = favoriteItems.find(f => f.category === 'human');
+      const favFood = favoriteItems.find(f => f.category === 'food');
+      const pFavH = document.getElementById('pdfFavHuman');
+      const pFavF = document.getElementById('pdfFavFood');
+
+      if (pFavH) pFavH.textContent = favHuman ? favHuman.title : "Mama (Bonding Dagu & Perut)";
+      if (pFavF) pFavF.textContent = favFood ? favFood.title : "Freeze-Dried Salmon Bites & Gravy Chicken";
+    }
+
+    function generateExecutiveSummaryPDF() {
+      const startVal = document.getElementById('exportStartDate').value;
+      const endVal = document.getElementById('exportEndDate').value;
+
+      showToast("Menyusun Rangkuman Eksekutif PDF...");
+      populateExecutiveSummaryData(startVal, endVal);
+
+      const element = document.getElementById('pdfA4Container');
+      if (!element) {
+        showToast("Wadah template PDF tidak ditemukan.", true);
+        return;
+      }
+
+      setTimeout(() => {
+        const opt = {
+          margin: 0,
+          filename: `${petProfile.name || 'Pet'}_Report_${startVal}_sd_${endVal}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { 
+            scale: 2, 
+            useCORS: true, 
+            logging: false 
+          },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        html2pdf().set(opt).from(element).save().then(() => {
+          showToast("PDF A4 1 Halaman berhasil diunduh!");
+          closeExportReportModal();
+        }).catch(err => {
+          console.warn("html2pdf export notice, fallback ke print:", err);
+          window.print();
+          closeExportReportModal();
+        });
+      }, 150);
+    }
+
+    function renderAllViews() {
+      renderProfile();
+      renderActivityLogs();
+      renderRoutines();
+      renderMedicalRecords();
+      renderVetRecords();
+      renderFavorites();
+      renderGroomingSchedules();
+      renderSupplies();
+      initWeightChart();
+      calculateDailyCalories();
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const todayEl = document.getElementById('todayDateStr');
+      if (todayEl) {
+        const d = new Date();
+        const options = { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' };
+        todayEl.textContent = d.toLocaleDateString('id-ID', options);
+      }
+      checkGasEnvironment();
+    });
+  </script>
+</body>
+</html>
